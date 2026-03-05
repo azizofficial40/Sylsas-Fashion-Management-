@@ -11,8 +11,10 @@ const SETTINGS_T = {
     phone: 'Phone Number',
     role: 'Designation',
     logoUrl: 'Logo URL',
-    pin: 'Login PIN (4 digits)',
+    email: 'Admin Email',
+    password: 'Admin Password',
     apiKey: 'Gemini API Key',
+    payment: 'Payment Numbers (Personal/Agent)',
     save: 'Save Settings',
     success: 'Settings updated successfully!'
   },
@@ -23,8 +25,10 @@ const SETTINGS_T = {
     phone: 'ফোন নম্বর',
     role: 'পদবী',
     logoUrl: 'লোগো লিঙ্ক',
-    pin: 'লগইন পিন (৪ ডিজিট)',
+    email: 'অ্যাডমিন ইমেইল',
+    password: 'অ্যাডমিন পাসওয়ার্ড',
     apiKey: 'জেমিনি এপিআই কি',
+    payment: 'পেমেন্ট নাম্বার (পার্সোনাল/এজেন্ট)',
     save: 'সেভ করুন',
     success: 'তথ্য সফলভাবে আপডেট হয়েছে!'
   }
@@ -150,7 +154,43 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.payment}</label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <div className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">Bk</div>
+                  <input 
+                    type="text" 
+                    className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-pink-100 dark:focus:ring-pink-900/30 transition-all"
+                    value={formData.bkash || ''}
+                    onChange={e => setFormData({ ...formData, bkash: e.target.value })}
+                    placeholder="Bkash Number"
+                  />
+                </div>
+                <div className="relative">
+                  <div className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">Ng</div>
+                  <input 
+                    type="text" 
+                    className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-orange-100 dark:focus:ring-orange-900/30 transition-all"
+                    value={formData.nagad || ''}
+                    onChange={e => setFormData({ ...formData, nagad: e.target.value })}
+                    placeholder="Nagad Number"
+                  />
+                </div>
+                <div className="relative">
+                  <div className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">Rk</div>
+                  <input 
+                    type="text" 
+                    className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/30 transition-all"
+                    value={formData.rocket || ''}
+                    onChange={e => setFormData({ ...formData, rocket: e.target.value })}
+                    placeholder="Rocket Number"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
               <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.apiKey}</label>
               <div className="relative">
                 <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" size={18} />
@@ -165,15 +205,28 @@ const Settings: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.pin}</label>
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.email}</label>
+              <div className="relative">
+                <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" size={18} />
+                <input 
+                  type="email" 
+                  className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
+                  value={formData.email || ''}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.password}</label>
               <div className="relative">
                 <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" size={18} />
                 <input 
-                  type="password" 
-                  maxLength={4}
-                  className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all tracking-[0.5em]"
-                  value={formData.pin}
-                  onChange={e => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })}
+                  type="text" 
+                  className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
+                  value={formData.password || ''}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
                   required
                 />
               </div>

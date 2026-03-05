@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Customer, Sale, Expense, BusinessState, Language, Theme } from './types';
+import { Product, Customer, Sale, Expense, BusinessState, Language, Theme, Order, CartItem, StockVariant, Coupon, UserProfile, Review } from './types';
 import { db } from './services/firebase';
 import { 
   collection, 
@@ -11,10 +11,21 @@ import {
   doc, 
   setDoc,
   query,
-  orderBy
+  orderBy,
+  where,
+  getDocs
 } from 'firebase/firestore';
 
 interface StoreContextType extends BusinessState {
+  orders: Order[];
+  cart: CartItem[];
+  coupons: Coupon[];
+  user: UserProfile | null;
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (productId: string, variant: StockVariant) => void;
+  clearCart: () => void;
+  placeOrder: (order: Order) => Promise<void>;
+  updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -31,8 +42,14 @@ interface StoreContextType extends BusinessState {
   setLanguage: (lang: Language) => void;
   setApiKey: (key: string) => void;
   toggleTheme: () => void;
-  login: (pass: string) => boolean;
+  login: (email: string, pass: string) => boolean;
   logout: () => void;
+  // User Account Methods
+  loginUser: (email: string, phone: string) => Promise<void>;
+  logoutUser: () => void;
+  toggleWishlist: (productId: string) => Promise<void>;
+  applyCoupon: (code: string, orderTotal: number) => Coupon | null;
+  addReview: (productId: string, review: Review) => Promise<void>;
   error: { message: string; code?: string } | null;
 }
 
@@ -51,7 +68,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [user, setUser] = useState<UserProfile | null>(() => loadSettings('user', null));
   
   // Fix: Renamed setter to setLanguageState to avoid name collision with the setLanguage function
   const [language, setLanguageState] = useState<Language>(() => loadSettings('language', 'en'));
@@ -65,7 +86,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     phone: '01712345678',
     role: 'Owner',
     image: 'https://picsum.photos/seed/admin/100/100',
-    pin: '1234'
+    email: 'sylsasfashion@gmail.com',
+    password: 'sylsas#2025'
   });
 
   const handleFirebaseError = (err: any) => {
@@ -110,6 +132,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleFirebaseError
     );
 
+    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), 
+      (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      },
+      handleFirebaseError
+    );
+
     const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), orderBy('date', 'desc')), 
       (snapshot) => {
         setExpenses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense)));
@@ -118,28 +147,59 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleFirebaseError
     );
 
+    const unsubCoupons = onSnapshot(collection(db, 'coupons'), 
+      (snapshot) => {
+        setCoupons(snapshot.docs.map(doc => ({ ...doc.data() } as Coupon)));
+      },
+      handleFirebaseError
+    );
+
     const unsubAdmin = onSnapshot(doc(db, 'settings', 'shop'), 
       (snapshot) => {
         if (snapshot.exists()) {
-          setAdmin(snapshot.data() as BusinessState['admin']);
+          const data = snapshot.data() as BusinessState['admin'];
+          setAdmin(prev => ({
+            ...prev,
+            ...data,
+            // Ensure email and password always have a fallback if missing in DB
+            email: data.email || 'sylsasfashion@gmail.com',
+            password: data.password || 'sylsas#2025'
+          }));
         }
       },
       handleFirebaseError
     );
 
+    // User Profile Listener (if logged in)
+    let unsubUser = () => {};
+    if (user?.id) {
+      unsubUser = onSnapshot(doc(db, 'users', user.id), 
+        (snapshot) => {
+          if (snapshot.exists()) {
+            setUser({ id: snapshot.id, ...snapshot.data() } as UserProfile);
+          }
+        }
+      );
+    }
+
     return () => {
       unsubProducts();
       unsubCustomers();
       unsubSales();
+      unsubOrders();
       unsubExpenses();
+      unsubCoupons();
       unsubAdmin();
+      unsubUser();
     };
-  }, [language]);
+  }, [language, user?.id]);
 
   useEffect(() => { saveSettings('language', language); }, [language]);
   useEffect(() => { saveSettings('theme', theme); }, [theme]);
   useEffect(() => { saveSettings('apiKey', apiKey); }, [apiKey]);
   useEffect(() => { saveSettings('isLoggedIn', isLoggedIn); }, [isLoggedIn]);
+  useEffect(() => { saveSettings('cart', cart); }, [cart]);
+  useEffect(() => { saveSettings('user', user); }, [user]);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -149,8 +209,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [theme]);
 
-  const login = (pass: string) => {
-    if (pass === admin.pin) {
+  const login = (email: string, pass: string) => {
+    if (email === admin.email && pass === admin.password) {
       setIsLoggedIn(true);
       return true;
     }
@@ -158,6 +218,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const logout = () => setIsLoggedIn(false);
+
+  // User Auth Methods
+  const loginUser = async (email: string, phone: string) => {
+    // Simple simulation for now, ideally use Firebase Auth
+    // Check if user exists in 'users' collection by email
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userData = querySnapshot.docs[0].data() as UserProfile;
+      setUser({ ...userData, id: querySnapshot.docs[0].id });
+    } else {
+      // Create new user
+      const newUser: UserProfile = {
+        id: Date.now().toString(),
+        name: email.split('@')[0],
+        email,
+        phone,
+        wishlist: [],
+        orders: [],
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'users', newUser.id), newUser);
+      setUser(newUser);
+    }
+  };
+
+  const logoutUser = () => setUser(null);
+
+  const toggleWishlist = async (productId: string) => {
+    if (!user) return;
+    const isInWishlist = user.wishlist.includes(productId);
+    const newWishlist = isInWishlist 
+      ? user.wishlist.filter(id => id !== productId)
+      : [...user.wishlist, productId];
+    
+    await updateDoc(doc(db, 'users', user.id), { wishlist: newWishlist });
+    setUser({ ...user, wishlist: newWishlist });
+  };
+
+  const applyCoupon = (code: string, orderTotal: number): Coupon | null => {
+    const coupon = coupons.find(c => c.code === code && c.isActive);
+    if (!coupon) return null;
+    if (orderTotal < coupon.minOrder) return null;
+    return coupon;
+  };
 
   // Firestore Operations wrapper
   const wrapOp = async (op: () => Promise<any>) => {
@@ -169,6 +275,71 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw err;
     }
   };
+
+  const addToCart = (item: CartItem) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.product.id === item.product.id && i.variant.size === item.variant.size && i.variant.color === item.variant.color);
+      if (existing) {
+        return prev.map(i => i === existing ? { ...i, quantity: i.quantity + item.quantity } : i);
+      }
+      return [...prev, item];
+    });
+  };
+
+  const removeFromCart = (productId: string, variant: StockVariant) => {
+    setCart(prev => prev.filter(i => !(i.product.id === productId && i.variant.size === variant.size && i.variant.color === variant.color)));
+  };
+
+  const clearCart = () => setCart([]);
+
+  const placeOrder = (order: Order) => wrapOp(async () => {
+    await setDoc(doc(db, 'orders', order.id), order);
+
+    // Update stock
+    for (const item of order.items) {
+      const product = products.find(p => p.id === item.product.id);
+      if (product) {
+        const updatedVariants = product.variants.map(v => 
+          (v.size === item.variant.size && v.color === item.variant.color) 
+            ? { ...v, quantity: Math.max(0, v.quantity - item.quantity) } 
+            : v
+        );
+        await updateDoc(doc(db, 'products', item.product.id), { variants: updatedVariants });
+      }
+    }
+
+    if (user) {
+      await updateDoc(doc(db, 'users', user.id), {
+        orders: [...user.orders, order.id]
+      });
+    }
+    clearCart();
+  });
+
+  const updateOrderStatus = (id: string, status: Order['status']) => wrapOp(async () => {
+    const order = orders.find(o => o.id === id);
+    if (!order) return;
+
+    if (status === 'Cancelled' && order.status !== 'Cancelled') {
+      // Restore stock
+      for (const item of order.items) {
+        const product = products.find(p => p.id === item.product.id);
+        if (product) {
+          const updatedVariants = product.variants.map(v => 
+            (v.size === item.variant.size && v.color === item.variant.color) 
+              ? { ...v, quantity: v.quantity + item.quantity } 
+              : v
+          );
+          await updateDoc(doc(db, 'products', item.product.id), { variants: updatedVariants });
+        }
+      }
+    }
+
+    await updateDoc(doc(db, 'orders', id), { 
+      status,
+      timeline: [...(order.timeline || []), { status, date: new Date().toISOString(), note: `Order ${status}` }]
+    });
+  });
 
   const addProduct = (product: Product) => wrapOp(async () => {
     const { id, ...data } = product;
@@ -290,6 +461,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await deleteDoc(doc(db, 'sales', id));
   });
   
+  const addReview = (productId: string, review: Review) => wrapOp(async () => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const newReviews = [...(product.reviews || []), review];
+    const totalRating = newReviews.reduce((acc, r) => acc + r.rating, 0);
+    const avgRating = Number((totalRating / newReviews.length).toFixed(1));
+
+    await updateDoc(doc(db, 'products', productId), {
+      reviews: newReviews,
+      rating: avgRating
+    });
+  });
+
   const updateAdmin = (adminData: BusinessState['admin']) => wrapOp(async () => {
     await setDoc(doc(db, 'settings', 'shop'), adminData);
   });
@@ -301,10 +486,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       products, customers, sales, expenses, admin, language, theme, isLoggedIn, apiKey,
+      orders, cart, coupons, user, addToCart, removeFromCart, clearCart, placeOrder, updateOrderStatus,
       addProduct, updateProduct, deleteProduct, addSale, deleteSale, 
       addExpense, updateExpense, deleteExpense, 
       addCustomer, updateCustomer, deleteCustomer, receivePayment,
-      updateAdmin, setLanguage, setApiKey, toggleTheme, login, logout, error
+      updateAdmin, setLanguage, setApiKey, toggleTheme, login, logout, 
+      loginUser, logoutUser, toggleWishlist, applyCoupon, addReview, error
     }}>
       {children}
     </StoreContext.Provider>

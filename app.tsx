@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { StoreProvider, useStore } from './store';
 import { TabType, Language } from './types';
 import Dashboard from './components/dashboard.tsx';
@@ -10,6 +11,8 @@ import Customers from './components/customers.tsx';
 import Reports from './components/reports.tsx';
 import AIAssistant from './components/ai-assistant.tsx';
 import Settings from './components/settings.tsx';
+import Shop from './components/shop.tsx';
+import Orders from './components/orders.tsx';
 import { 
   LayoutGrid, 
   ShoppingBag, 
@@ -32,6 +35,7 @@ const TRANSLATIONS = {
   en: {
     dashboard: 'Home',
     sales: 'Sales',
+    orders: 'Orders',
     stock: 'Stock',
     expense: 'Bills',
     customers: 'Clients',
@@ -42,33 +46,39 @@ const TRANSLATIONS = {
     loginBtn: 'Enter System',
     logout: 'Logout',
     langToggle: 'বাংলা',
-    invalidPin: 'Access Denied!'
+    emailPlaceholder: 'Email Address',
+    passPlaceholder: 'Password',
+    invalidCreds: 'Invalid Credentials!'
   },
   bn: {
     dashboard: 'হোম',
     sales: 'বিক্রি',
+    orders: 'অর্ডার',
     stock: 'স্টক',
     expense: 'খরচ',
     customers: 'কাস্টমার',
     report: 'রিপোর্ট',
     ai: 'সিলেস এআই',
     loginTitle: 'সিলেস ফ্যাশন',
-    loginSub: 'সিকিউর পিন দিয়ে প্রবেশ করুন',
+    loginSub: 'সিকিউর এক্সেস',
     loginBtn: 'প্রবেশ করুন',
     logout: 'লগআউট',
     langToggle: 'English',
-    invalidPin: 'ভুল পিন!'
+    emailPlaceholder: 'ইমেইল অ্যাড্রেস',
+    passPlaceholder: 'পাসওয়ার্ড',
+    invalidCreds: 'ভুল ইমেইল বা পাসওয়ার্ড!'
   }
 };
 
 const LoginScreen: React.FC = () => {
   const { login, language } = useStore();
-  const [pin, setPin] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [err, setErr] = useState(false);
   const t = TRANSLATIONS[language];
 
   const handleLogin = () => {
-    if (!login(pin)) setErr(true);
+    if (!login(email, password)) setErr(true);
   };
 
   return (
@@ -82,20 +92,26 @@ const LoginScreen: React.FC = () => {
           <p className="text-slate-400 dark:text-slate-500 font-bold text-sm tracking-widest uppercase">{t.loginSub}</p>
         </div>
         
-        <div className="space-y-6">
+        <div className="space-y-4">
+          <input 
+            type="email" 
+            placeholder={t.emailPlaceholder}
+            className={`w-full p-5 bg-slate-50 dark:bg-slate-900 border-0 rounded-2xl outline-none font-bold transition-all focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 ${err ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-500' : 'text-slate-900 dark:text-white'}`}
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setErr(false); }}
+          />
           <input 
             type="password" 
-            placeholder="••••"
-            maxLength={4}
-            className={`w-full py-8 bg-slate-50 dark:bg-slate-900 border-0 rounded-[2rem] text-center text-4xl font-black tracking-[1em] outline-none transition-all focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 ${err ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-500' : 'text-slate-900 dark:text-white'}`}
-            value={pin}
-            onChange={(e) => { setPin(e.target.value); setErr(false); }}
+            placeholder={t.passPlaceholder}
+            className={`w-full p-5 bg-slate-50 dark:bg-slate-900 border-0 rounded-2xl outline-none font-bold transition-all focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 ${err ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-500' : 'text-slate-900 dark:text-white'}`}
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setErr(false); }}
             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
           />
-          {err && <p className="text-rose-500 font-black text-xs uppercase tracking-widest animate-bounce">{t.invalidPin}</p>}
+          {err && <p className="text-rose-500 font-black text-xs uppercase tracking-widest animate-bounce">{t.invalidCreds}</p>}
           <button 
             onClick={handleLogin}
-            className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-indigo-100 dark:shadow-indigo-900/30 active:scale-95 transition-all"
+            className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-indigo-100 dark:shadow-indigo-900/30 active:scale-95 transition-all mt-4"
           >
             {t.loginBtn}
           </button>
@@ -110,6 +126,7 @@ const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) =>
   const t = TRANSLATIONS[language];
   const tabs = [
     { id: 'dashboard', label: t.dashboard, icon: LayoutGrid },
+    { id: 'orders', label: t.orders, icon: ShoppingBag },
     { id: 'sales', label: t.sales, icon: ShoppingBag },
     { id: 'stock', label: t.stock, icon: Archive },
     { id: 'customers', label: t.customers, icon: Users },
@@ -226,18 +243,18 @@ const LandingPage: React.FC<{ onGetStarted: () => void }> = ({ onGetStarted }) =
   );
 };
 
-const AppContent: React.FC = () => {
+const AdminLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const [showLanding, setShowLanding] = useState(true);
   const { error, language, setLanguage, theme, toggleTheme, logout, isLoggedIn, admin } = useStore();
   const t = TRANSLATIONS[language];
+  const navigate = useNavigate();
 
-  if (showLanding && !isLoggedIn) return <LandingPage onGetStarted={() => setShowLanding(false)} />;
   if (!isLoggedIn) return <LoginScreen />;
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard />;
+      case 'orders': return <Orders />;
       case 'sales': return <Sales />;
       case 'stock': return <Stock />;
       case 'expense': return <Expenses />;
@@ -272,6 +289,13 @@ const AppContent: React.FC = () => {
           </div>
         </button>
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => navigate('/')}
+            className="w-10 h-10 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-center shadow-sm border border-white dark:border-slate-800 hover:border-indigo-100 active:scale-90 transition-all"
+            title="Go to Shop"
+          >
+            <ShoppingBag size={18} />
+          </button>
           <button 
             onClick={toggleTheme}
             className="w-10 h-10 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-center shadow-sm border border-white dark:border-slate-800 hover:border-indigo-100 active:scale-90 transition-all"
@@ -308,10 +332,20 @@ const AppContent: React.FC = () => {
   );
 };
 
+import Auth from './components/auth.tsx';
+import Profile from './components/profile.tsx';
+
 const App: React.FC = () => {
   return (
     <StoreProvider>
-      <AppContent />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Shop />} />
+          <Route path="/admin" element={<AdminLayout />} />
+          <Route path="/login" element={<Auth />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </BrowserRouter>
     </StoreProvider>
   );
 };

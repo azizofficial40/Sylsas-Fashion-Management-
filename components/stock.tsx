@@ -15,6 +15,7 @@ const STOCK_T = {
     search: 'Lookup product...',
     low: 'Critically Low',
     cost: 'Cost Price',
+    sale: 'Sale Price',
     imgLabel: 'Product Visual'
   },
   bn: {
@@ -27,6 +28,7 @@ const STOCK_T = {
     search: 'পণ্য খুঁজুন...',
     low: 'স্টক কম আছে',
     cost: 'ক্রয় মূল্য',
+    sale: 'বিক্রয় মূল্য',
     imgLabel: 'পণ্যের ছবি'
   }
 };
@@ -215,9 +217,15 @@ const Stock: React.FC = () => {
                 <input type="text" placeholder="e.g. Premium Silk Polo" className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-lg focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 dark:text-white" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t.cost}</label>
-                <input type="number" placeholder="0.00" className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-black text-xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 dark:text-white" value={newProduct.purchasePrice || ''} onChange={e => setNewProduct({...newProduct, purchasePrice: Number(e.target.value)})} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t.cost}</label>
+                  <input type="number" placeholder="0.00" className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-black text-xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 dark:text-white" value={newProduct.purchasePrice || ''} onChange={e => setNewProduct({...newProduct, purchasePrice: Number(e.target.value)})} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t.sale}</label>
+                  <input type="number" placeholder="0.00" className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-black text-xl focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 dark:text-white" value={newProduct.salePrice || ''} onChange={e => setNewProduct({...newProduct, salePrice: Number(e.target.value)})} />
+                </div>
               </div>
 
               <div className="space-y-4">

@@ -9,14 +9,26 @@ export interface StockVariant {
   quantity: number;
 }
 
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   category: string;
   image: string;
+  gallery?: string[];
   purchasePrice: number;
   salePrice: number;
   variants: StockVariant[];
+  reviews?: Review[];
+  rating?: number;
 }
 
 export interface Customer {
@@ -26,6 +38,25 @@ export interface Customer {
   address: string;
   totalSpent: number;
   totalDue: number;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  wishlist: string[]; // Product IDs
+  orders: string[]; // Order IDs
+  createdAt: string;
+}
+
+export interface Coupon {
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  minOrder: number;
+  isActive: boolean;
 }
 
 export type PaymentStatus = 'Full Paid' | 'Partial Paid' | 'Due';
@@ -56,22 +87,55 @@ export interface Expense {
   notes: string;
 }
 
-export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'settings';
+export interface CartItem {
+  product: Product;
+  variant: StockVariant;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  userId?: string; // For logged-in users
+  customerName: string;
+  phone: string;
+  address: string;
+  deliveryLocation: 'Sylhet' | 'Outside';
+  items: CartItem[];
+  totalAmount: number;
+  deliveryCharge: number;
+  discount: number;
+  couponCode?: string;
+  status: 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  date: string;
+  paymentMethod: 'COD' | 'Bkash' | 'Nagad' | 'Rocket';
+  transactionId?: string;
+  timeline?: { status: string; date: string; note?: string }[];
+}
+
+export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons';
 
 export interface BusinessState {
   products: Product[];
   customers: Customer[];
   sales: Sale[];
+  orders: Order[];
   expenses: Expense[];
+  coupons: Coupon[];
   language: Language;
   theme: Theme;
   isLoggedIn: boolean;
+  user: UserProfile | null;
   admin: {
     name: string;
     phone: string;
     role: string;
     image: string;
-    pin: string;
+    email: string;
+    password: string;
+    pin?: string;
+    bkash?: string;
+    nagad?: string;
+    rocket?: string;
   };
   apiKey?: string;
 }
