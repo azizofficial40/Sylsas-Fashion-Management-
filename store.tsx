@@ -29,6 +29,7 @@ interface StoreContextType extends BusinessState {
   receivePayment: (customerId: string, amount: number) => Promise<void>;
   updateAdmin: (adminData: BusinessState['admin']) => Promise<void>;
   setLanguage: (lang: Language) => void;
+  setApiKey: (key: string) => void;
   toggleTheme: () => void;
   login: (pass: string) => boolean;
   logout: () => void;
@@ -55,6 +56,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Fix: Renamed setter to setLanguageState to avoid name collision with the setLanguage function
   const [language, setLanguageState] = useState<Language>(() => loadSettings('language', 'en'));
   const [theme, setThemeState] = useState<Theme>(() => loadSettings('theme', 'light'));
+  const [apiKey, setApiKey] = useState<string>(() => loadSettings('apiKey', process.env.API_KEY || ''));
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => loadSettings('isLoggedIn', false));
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
   
@@ -136,6 +138,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => { saveSettings('language', language); }, [language]);
   useEffect(() => { saveSettings('theme', theme); }, [theme]);
+  useEffect(() => { saveSettings('apiKey', apiKey); }, [apiKey]);
   useEffect(() => { saveSettings('isLoggedIn', isLoggedIn); }, [isLoggedIn]);
 
   useEffect(() => {
@@ -297,11 +300,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      products, customers, sales, expenses, admin, language, theme, isLoggedIn,
+      products, customers, sales, expenses, admin, language, theme, isLoggedIn, apiKey,
       addProduct, updateProduct, deleteProduct, addSale, deleteSale, 
       addExpense, updateExpense, deleteExpense, 
       addCustomer, updateCustomer, deleteCustomer, receivePayment,
-      updateAdmin, setLanguage, toggleTheme, login, logout, error
+      updateAdmin, setLanguage, setApiKey, toggleTheme, login, logout, error
     }}>
       {children}
     </StoreContext.Provider>

@@ -12,6 +12,7 @@ const SETTINGS_T = {
     role: 'Designation',
     logoUrl: 'Logo URL',
     pin: 'Login PIN (4 digits)',
+    apiKey: 'Gemini API Key',
     save: 'Save Settings',
     success: 'Settings updated successfully!'
   },
@@ -23,15 +24,17 @@ const SETTINGS_T = {
     role: 'পদবী',
     logoUrl: 'লোগো লিঙ্ক',
     pin: 'লগইন পিন (৪ ডিজিট)',
+    apiKey: 'জেমিনি এপিআই কি',
     save: 'সেভ করুন',
     success: 'তথ্য সফলভাবে আপডেট হয়েছে!'
   }
 };
 
 const Settings: React.FC = () => {
-  const { admin, updateAdmin, language } = useStore();
+  const { admin, updateAdmin, language, apiKey, setApiKey } = useStore();
   const t = SETTINGS_T[language];
   const [formData, setFormData] = useState(admin);
+  const [apiKeyValue, setApiKeyValue] = useState(apiKey || '');
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -49,6 +52,7 @@ const Settings: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateAdmin(formData);
+    setApiKey(apiKeyValue);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
   };
@@ -142,6 +146,20 @@ const Settings: React.FC = () => {
                   value={formData.image}
                   onChange={e => setFormData({ ...formData, image: e.target.value })}
                   required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.apiKey}</label>
+              <div className="relative">
+                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" size={18} />
+                <input 
+                  type="password" 
+                  className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
+                  value={apiKeyValue}
+                  onChange={e => setApiKeyValue(e.target.value)}
+                  placeholder="AI-..."
                 />
               </div>
             </div>

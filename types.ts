@@ -73,4 +73,5 @@ export interface BusinessState {
     image: string;
     pin: string;
   };
+  apiKey?: string;
 }

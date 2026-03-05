@@ -3,12 +3,13 @@ import {GoogleGenAI} from "@google/genai";
 import { BusinessState } from "../types";
 
 export const getBusinessInsights = async (state: BusinessState, prompt: string) => {
-  if (!process.env.API_KEY) {
-      return "API Key not found. Please ensure it is configured.";
+  const apiKey = state.apiKey || process.env.API_KEY;
+  if (!apiKey) {
+      return "API Key not found. Please configure it in Settings.";
   }
 
   // Use correct initialization with named parameter
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
   
   const businessSummary = {
       totalProducts: state.products.length,
