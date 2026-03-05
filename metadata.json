@@ -1,0 +1,7 @@
+{
+  "name": "Sylsas Fashion Management",
+  "description": "A comprehensive, production-ready mobile-first business management app for fashion stores, featuring real-time analytics, inventory management, and a Gemini-powered business assistant.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
