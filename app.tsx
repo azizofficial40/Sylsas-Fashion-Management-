@@ -122,11 +122,13 @@ const LoginScreen: React.FC = () => {
 };
 
 const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) => void }> = ({ activeTab, setActiveTab }) => {
-  const { language } = useStore();
+  const { language, orders } = useStore();
   const t = TRANSLATIONS[language];
+  const pendingCount = orders.filter(o => o.status === 'Pending').length;
+  
   const tabs = [
     { id: 'dashboard', label: t.dashboard, icon: LayoutGrid },
-    { id: 'orders', label: t.orders, icon: ShoppingBag },
+    { id: 'orders', label: t.orders, icon: ShoppingBag, badge: pendingCount },
     { id: 'sales', label: t.sales, icon: ShoppingBag },
     { id: 'stock', label: t.stock, icon: Archive },
     { id: 'customers', label: t.customers, icon: Users },
@@ -143,13 +145,18 @@ const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) =>
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex flex-col items-center justify-center py-1 transition-all duration-300 active:scale-75 ${
+            className={`flex flex-col items-center justify-center py-1 transition-all duration-300 active:scale-75 relative ${
               isActive ? 'text-indigo-600' : 'text-slate-400 dark:text-slate-500'
             }`}
           >
             <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-indigo-50 dark:bg-indigo-950/50 active-tab-glow' : ''}`}>
               <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
             </div>
+            {tab.badge ? (
+              <span className="absolute top-0 right-0 -translate-y-1 translate-x-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm animate-pulse">
+                {tab.badge}
+              </span>
+            ) : null}
             <span className={`text-[8px] font-black mt-1 uppercase tracking-tighter ${isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>{tab.label}</span>
           </button>
         );
@@ -243,9 +250,11 @@ const LandingPage: React.FC<{ onGetStarted: () => void }> = ({ onGetStarted }) =
   );
 };
 
+import Toast from './components/Toast.tsx';
+
 const AdminLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const { error, language, setLanguage, theme, toggleTheme, logout, isLoggedIn, admin } = useStore();
+  const { error, language, setLanguage, theme, toggleTheme, logout, isLoggedIn, admin, notification, setNotification } = useStore();
   const t = TRANSLATIONS[language];
   const navigate = useNavigate();
 
@@ -268,6 +277,14 @@ const AdminLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-40 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+      {notification && (
+        <Toast 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification(null)} 
+        />
+      )}
+      
       {error && (
         <div className="bg-rose-600 text-white px-6 py-4 text-xs font-bold flex items-center justify-center gap-3 sticky top-0 z-[100] shadow-xl animate-in slide-in-from-top-4">
           <AlertCircle size={18} />
@@ -281,7 +298,13 @@ const AdminLayout: React.FC = () => {
           className="flex items-center gap-4 group text-left transition-all active:scale-95"
         >
           <div className="w-12 h-12 rounded-[1.2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-800 dark:text-slate-200 shadow-sm overflow-hidden group-hover:border-indigo-200 group-hover:shadow-md transition-all">
-            <img src={admin.image} className="w-full h-full object-cover" alt="Logo" />
+            {admin.image ? (
+              <img src={admin.image} className="w-full h-full object-cover" alt="Logo" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-white font-bold text-xl">
+                {admin.name.charAt(0)}
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-indigo-600 transition-colors">{admin.name}</h1>

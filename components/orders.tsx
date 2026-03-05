@@ -10,7 +10,7 @@ const ORDERS_T = {
     sub: 'Manage customer orders',
     status: {
       Pending: 'Pending',
-      Confirmed: 'Confirmed',
+      Confirmed: 'Accepted',
       Shipped: 'Shipped',
       Delivered: 'Delivered',
       Cancelled: 'Cancelled'
@@ -19,14 +19,16 @@ const ORDERS_T = {
     items: 'Items',
     total: 'Total',
     customer: 'Customer Details',
-    actions: 'Update Status'
+    actions: 'Update Status',
+    accept: 'Accept Order',
+    reject: 'Reject & Delete'
   },
   bn: {
     title: 'অনলাইন অর্ডার',
     sub: 'কাস্টমার অর্ডার ম্যানেজমেন্ট',
     status: {
       Pending: 'পেন্ডিং',
-      Confirmed: 'কনফার্মড',
+      Confirmed: 'গৃহীত',
       Shipped: 'শিপড',
       Delivered: 'ডেলিভারড',
       Cancelled: 'বাতিল'
@@ -35,15 +37,18 @@ const ORDERS_T = {
     items: 'আইটেম',
     total: 'মোট',
     customer: 'কাস্টমার তথ্য',
-    actions: 'স্ট্যাটাস পরিবর্তন'
+    actions: 'স্ট্যাটাস পরিবর্তন',
+    accept: 'অর্ডার গ্রহণ করুন',
+    reject: 'অর্ডার বাতিল ও ডিলেট'
   }
 };
 
 const Orders: React.FC = () => {
-  const { orders, updateOrderStatus, language } = useStore();
+  const { orders, updateOrderStatus, deleteOrder, language } = useStore();
   const t = ORDERS_T[language];
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'All'>('All');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const filteredOrders = filterStatus === 'All' 
     ? orders 
@@ -173,7 +178,13 @@ const Orders: React.FC = () => {
                     <div className="space-y-3">
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center gap-4">
-                          <img src={item.product.image} className="w-12 h-12 rounded-xl object-cover" alt={item.product.name} />
+                          {item.product.image ? (
+                            <img src={item.product.image} className="w-12 h-12 rounded-xl object-cover" alt={item.product.name} />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                              <Package size={20} className="text-slate-300" />
+                            </div>
+                          )}
                           <div className="flex-1">
                             <p className="font-bold text-sm">{item.product.name}</p>
                             <p className="text-xs text-slate-500 font-bold">{item.variant.size} • {item.variant.color} • x{item.quantity}</p>
@@ -186,21 +197,90 @@ const Orders: React.FC = () => {
 
                   <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">{t.actions}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'].map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => updateOrderStatus(order.id, status as Order['status'])}
-                          disabled={order.status === status}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                            order.status === status
-                              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white'
-                              : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-500'
-                          }`}
-                        >
-                          {t.status[status as Order['status']]}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-3">
+                      {order.status === 'Pending' ? (
+                        <>
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'Confirmed')}
+                            className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle size={18} />
+                            {t.accept}
+                          </button>
+                          {confirmDelete === order.id ? (
+                            <div className="flex-1 flex gap-2 animate-in fade-in zoom-in duration-300">
+                              <button
+                                onClick={() => {
+                                  deleteOrder(order.id);
+                                  setConfirmDelete(null);
+                                }}
+                                className="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg"
+                              >
+                                {language === 'bn' ? 'হ্যাঁ, ডিলেট করুন' : 'Yes, Delete'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete(null)}
+                                className="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest"
+                              >
+                                {language === 'bn' ? 'না' : 'No'}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDelete(order.id)}
+                              className="px-6 py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl font-black text-xs uppercase tracking-widest border border-rose-100 dark:border-rose-800 hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
+                            >
+                              <XCircle size={18} />
+                              {t.reject}
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 w-full">
+                          {['Confirmed', 'Shipped', 'Delivered', 'Cancelled'].map((status) => (
+                            <button
+                              key={status}
+                              onClick={() => updateOrderStatus(order.id, status as Order['status'])}
+                              disabled={order.status === status}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                order.status === status
+                                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white'
+                                  : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-500'
+                              }`}
+                            >
+                              {t.status[status as Order['status']]}
+                            </button>
+                          ))}
+                          {order.status === 'Cancelled' && (
+                            confirmDelete === order.id ? (
+                              <div className="flex gap-2 animate-in fade-in zoom-in duration-300">
+                                <button
+                                  onClick={() => {
+                                    deleteOrder(order.id);
+                                    setConfirmDelete(null);
+                                  }}
+                                  className="px-4 py-2 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                >
+                                  {language === 'bn' ? 'হ্যাঁ' : 'Yes'}
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDelete(null)}
+                                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                >
+                                  {language === 'bn' ? 'না' : 'No'}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDelete(order.id)}
+                                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-200 text-rose-500 hover:bg-rose-50 transition-all"
+                              >
+                                {language === 'bn' ? 'ডিলেট করুন' : 'Delete Order'}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

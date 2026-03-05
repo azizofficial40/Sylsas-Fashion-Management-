@@ -25,6 +25,7 @@ interface StoreContextType extends BusinessState {
   removeFromCart: (productId: string, variant: StockVariant) => void;
   clearCart: () => void;
   placeOrder: (order: Order) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
@@ -87,57 +88,124 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     role: 'Owner',
     image: 'https://picsum.photos/seed/admin/100/100',
     email: 'sylsasfashion@gmail.com',
-    password: 'sylsas#2025'
+    password: 'sylsas#2025',
+    whatsapp: '01618539338'
   });
 
-  const handleFirebaseError = (err: any) => {
-    console.error("Firebase Error:", err);
-    if (err.code === 'permission-denied') {
-      setError({ 
-        message: language === 'bn' 
-          ? "ফায়ারবেস পারমিশন এরর! দয়া করে ফায়ারবেস কনসোলে গিয়ে Rules আপডেট করুন।" 
-          : "Firestore Permission Denied! Please update Security Rules in Firebase Console.",
-        code: err.code 
-      });
-    } else {
-      setError({ message: err.message || "Unknown error occurred", code: err.code });
-    }
-  };
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const previousOrdersRef = React.useRef<Map<string, string>>(new Map());
+    const isFirstLoadRef = React.useRef(true);
 
-  // Real-time Firebase listeners
-  useEffect(() => {
-    if (!db) return;
+    const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+      setNotification({ message, type });
+      // Auto hide is handled by Toast component, but we can also clear it here if needed
+    };
 
-    const unsubProducts = onSnapshot(collection(db, 'products'), 
-      (snapshot) => {
-        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-        setError(prev => prev?.code === 'permission-denied' ? null : prev);
-      }, 
-      handleFirebaseError
-    );
+    const handleFirebaseError = (err: any) => {
+      console.error("Firebase Error:", err);
+      if (err.code === 'permission-denied') {
+        setError({ 
+          message: language === 'bn' 
+            ? "ফায়ারবেস পারমিশন এরর! দয়া করে ফায়ারবেস কনসোলে গিয়ে Rules আপডেট করুন।" 
+            : "Firestore Permission Denied! Please update Security Rules in Firebase Console.",
+          code: err.code 
+        });
+      } else {
+        setError({ message: err.message || "Unknown error occurred", code: err.code });
+      }
+      showNotification(err.message || "An error occurred", 'error');
+    };
 
-    const unsubCustomers = onSnapshot(collection(db, 'customers'), 
-      (snapshot) => {
-        setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
-        setError(prev => prev?.code === 'permission-denied' ? null : prev);
-      },
-      handleFirebaseError
-    );
+    // Real-time Firebase listeners
+    useEffect(() => {
+      if (!db) return;
+  
+      const unsubProducts = onSnapshot(collection(db, 'products'), 
+        (snapshot) => {
+          setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+          setError(prev => prev?.code === 'permission-denied' ? null : prev);
+        }, 
+        handleFirebaseError
+      );
+  
+      const unsubCustomers = onSnapshot(collection(db, 'customers'), 
+        (snapshot) => {
+          setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
+          setError(prev => prev?.code === 'permission-denied' ? null : prev);
+        },
+        handleFirebaseError
+      );
+  
+      const unsubSales = onSnapshot(query(collection(db, 'sales'), orderBy('date', 'desc')), 
+        (snapshot) => {
+          setSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
+          setError(prev => prev?.code === 'permission-denied' ? null : prev);
+        },
+        handleFirebaseError
+      );
+  
+      const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), 
+        (snapshot) => {
+          const newOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+          setOrders(newOrders);
+          
+          if (isFirstLoadRef.current) {
+            isFirstLoadRef.current = false;
+            const newMap = new Map();
+            newOrders.forEach(o => newMap.set(o.id, o.status));
+            previousOrdersRef.current = newMap;
+            return;
+          }
 
-    const unsubSales = onSnapshot(query(collection(db, 'sales'), orderBy('date', 'desc')), 
-      (snapshot) => {
-        setSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
-        setError(prev => prev?.code === 'permission-denied' ? null : prev);
-      },
-      handleFirebaseError
-    );
+          // Check for new orders
+          if (newOrders.length > previousOrdersRef.current.size) {
+            const newOrder = newOrders.find(o => !previousOrdersRef.current.has(o.id));
+            if (newOrder && newOrder.status === 'Pending') {
+               // Play sound for Admin
+               if (isLoggedIn) {
+                 try {
+                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                   audio.play().catch(e => console.log('Audio play failed', e));
+                 } catch (e) {}
+                 
+                 showNotification(
+                   language === 'bn' 
+                     ? `নতুন অর্ডার এসেছে! #${newOrder.id.slice(-6)}` 
+                     : `New Order Received! #${newOrder.id.slice(-6)}`, 
+                   'success'
+                 );
+               }
+            }
+          }
 
-    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('date', 'desc')), 
-      (snapshot) => {
-        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-      },
-      handleFirebaseError
-    );
+          // Check for status changes
+          newOrders.forEach(order => {
+            const prevStatus = previousOrdersRef.current.get(order.id);
+            if (prevStatus && prevStatus !== order.status) {
+              // Notify Customer if it's their order
+              if (user && user.id === order.userId) {
+                 showNotification(
+                   language === 'bn' 
+                     ? `আপনার অর্ডার #${order.id.slice(-6)} এখন ${order.status}` 
+                     : `Your Order #${order.id.slice(-6)} is now ${order.status}`,
+                   'info'
+                 );
+              }
+              
+              // Notify Admin of cancellations
+              if (isLoggedIn && order.status === 'Cancelled' && prevStatus !== 'Cancelled') {
+                 showNotification(`Order #${order.id.slice(-6)} Cancelled`, 'error');
+              }
+            }
+          });
+
+          // Update ref
+          const newMap = new Map();
+          newOrders.forEach(o => newMap.set(o.id, o.status));
+          previousOrdersRef.current = newMap;
+        },
+        handleFirebaseError
+      );
 
     const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), orderBy('date', 'desc')), 
       (snapshot) => {
@@ -266,6 +334,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Firestore Operations wrapper
+  const sanitize = (data: any) => {
+    return JSON.parse(JSON.stringify(data, (_, v) => v === undefined ? null : v));
+  };
+
   const wrapOp = async (op: () => Promise<any>) => {
     try {
       await op();
@@ -293,27 +365,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const clearCart = () => setCart([]);
 
   const placeOrder = (order: Order) => wrapOp(async () => {
-    await setDoc(doc(db, 'orders', order.id), order);
+    await setDoc(doc(db, 'orders', order.id), sanitize(order));
 
-    // Update stock
-    for (const item of order.items) {
-      const product = products.find(p => p.id === item.product.id);
-      if (product) {
-        const updatedVariants = product.variants.map(v => 
-          (v.size === item.variant.size && v.color === item.variant.color) 
-            ? { ...v, quantity: Math.max(0, v.quantity - item.quantity) } 
-            : v
-        );
-        await updateDoc(doc(db, 'products', item.product.id), { variants: updatedVariants });
-      }
-    }
-
-    if (user) {
+    if (user && user.id) {
       await updateDoc(doc(db, 'users', user.id), {
-        orders: [...user.orders, order.id]
+        orders: [...(user.orders || []), order.id]
       });
     }
     clearCart();
+  });
+
+  const deleteOrder = (id: string) => wrapOp(async () => {
+    await deleteDoc(doc(db, 'orders', id));
+    showNotification(language === 'bn' ? 'অর্ডারটি ডিলেট করা হয়েছে' : 'Order deleted successfully', 'info');
   });
 
   const updateOrderStatus = (id: string, status: Order['status']) => wrapOp(async () => {
@@ -321,71 +385,163 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!order) return;
 
     if (status === 'Cancelled' && order.status !== 'Cancelled') {
-      // Restore stock
+      // Restore stock ONLY if it was previously delivered (because we now deduct on delivery)
+      if (order.status === 'Delivered') {
+        for (const item of order.items) {
+          const product = products.find(p => p.id === item.product.id);
+          if (product) {
+            const updatedVariants = product.variants.map(v => 
+              (v.size === item.variant.size && v.color === item.variant.color) 
+                ? { ...v, quantity: v.quantity + item.quantity } 
+                : v
+            );
+            await updateDoc(doc(db, 'products', item.product.id), { variants: updatedVariants });
+          }
+        }
+      }
+    }
+
+    if (status === 'Delivered' && order.status !== 'Delivered') {
+      // 1. Deduct Stock (as requested: "delivered deyar por auto stock minas hoi")
       for (const item of order.items) {
         const product = products.find(p => p.id === item.product.id);
         if (product) {
           const updatedVariants = product.variants.map(v => 
             (v.size === item.variant.size && v.color === item.variant.color) 
-              ? { ...v, quantity: v.quantity + item.quantity } 
+              ? { ...v, quantity: Math.max(0, v.quantity - item.quantity) } 
               : v
           );
           await updateDoc(doc(db, 'products', item.product.id), { variants: updatedVariants });
         }
       }
+
+      // 2. Find/Create Customer
+      let customerId = order.userId;
+      let customer = customers.find(c => c.phone === order.phone);
+      
+      if (!customer) {
+        // Create new customer
+        const newCustomer: Customer = {
+          id: Date.now().toString(),
+          name: order.customerName,
+          phone: order.phone,
+          address: order.address,
+          totalSpent: 0,
+          totalDue: 0
+        };
+        await setDoc(doc(db, 'customers', newCustomer.id), newCustomer);
+        customerId = newCustomer.id;
+        customer = newCustomer;
+      } else {
+        customerId = customer.id;
+      }
+
+      // 2. Create Sales
+      const orderTotalDiscount = order.discount || 0;
+      const orderSubtotal = order.items.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
+
+      for (const item of order.items) {
+        const itemTotal = item.product.salePrice * item.quantity;
+        const itemShare = orderSubtotal > 0 ? itemTotal / orderSubtotal : 0;
+        const itemDiscount = orderTotalDiscount * itemShare;
+        const finalAmount = itemTotal - itemDiscount;
+        
+        const profit = finalAmount - (item.product.purchasePrice * item.quantity);
+
+        const sale: Sale = {
+          id: `sale_${order.id}_${item.product.id}_${Date.now()}`,
+          customerId: customerId!,
+          customerName: order.customerName,
+          productId: item.product.id,
+          productName: item.product.name,
+          size: item.variant.size,
+          color: item.variant.color,
+          quantity: item.quantity,
+          salePrice: item.product.salePrice,
+          totalAmount: finalAmount,
+          paidAmount: finalAmount,
+          dueAmount: 0,
+          profit: profit,
+          date: new Date().toISOString(),
+          paymentStatus: 'Full Paid'
+        };
+        
+        await setDoc(doc(db, 'sales', sale.id), sanitize(sale));
+      }
+      
+      // 3. Update Customer Stats
+      if (customer) {
+        await updateDoc(doc(db, 'customers', customerId!), sanitize({
+          totalSpent: (customer.totalSpent || 0) + order.totalAmount
+        }));
+      }
     }
 
-    await updateDoc(doc(db, 'orders', id), { 
+    await updateDoc(doc(db, 'orders', id), sanitize({ 
       status,
       timeline: [...(order.timeline || []), { status, date: new Date().toISOString(), note: `Order ${status}` }]
-    });
+    }));
+    
+    showNotification(
+      language === 'bn' ? 'অর্ডার স্ট্যাটাস আপডেট হয়েছে' : 'Order status updated',
+      'success'
+    );
   });
 
   const addProduct = (product: Product) => wrapOp(async () => {
     const { id, ...data } = product;
-    await setDoc(doc(db, 'products', id), data);
+    await setDoc(doc(db, 'products', id), sanitize(data));
+    showNotification(language === 'bn' ? 'প্রোডাক্ট যুক্ত হয়েছে' : 'Product added successfully', 'success');
   });
   
   const updateProduct = (product: Product) => wrapOp(async () => {
     const { id, ...data } = product;
-    await updateDoc(doc(db, 'products', id), data as any);
+    await updateDoc(doc(db, 'products', id), sanitize(data));
+    showNotification(language === 'bn' ? 'প্রোডাক্ট আপডেট হয়েছে' : 'Product updated successfully', 'success');
   });
   
   const deleteProduct = (id: string) => wrapOp(async () => {
     await deleteDoc(doc(db, 'products', id));
+    showNotification(language === 'bn' ? 'প্রোডাক্ট ডিলিট হয়েছে' : 'Product deleted successfully', 'success');
   });
 
   const addCustomer = (customer: Customer) => wrapOp(async () => {
     const { id, ...data } = customer;
-    await setDoc(doc(db, 'customers', id), data);
+    await setDoc(doc(db, 'customers', id), sanitize(data));
+    showNotification(language === 'bn' ? 'কাস্টমার যুক্ত হয়েছে' : 'Customer added successfully', 'success');
   });
   
   const updateCustomer = (customer: Customer) => wrapOp(async () => {
     const { id, ...data } = customer;
-    await updateDoc(doc(db, 'customers', id), data as any);
+    await updateDoc(doc(db, 'customers', id), sanitize(data));
+    showNotification(language === 'bn' ? 'কাস্টমার আপডেট হয়েছে' : 'Customer updated successfully', 'success');
   });
   
   const deleteCustomer = (id: string) => wrapOp(async () => {
     await deleteDoc(doc(db, 'customers', id));
+    showNotification(language === 'bn' ? 'কাস্টমার ডিলিট হয়েছে' : 'Customer deleted successfully', 'success');
   });
 
   const addExpense = (expense: Expense) => wrapOp(async () => {
     const { id, ...data } = expense;
-    await setDoc(doc(db, 'expenses', id), data);
+    await setDoc(doc(db, 'expenses', id), sanitize(data));
+    showNotification(language === 'bn' ? 'খরচ যুক্ত হয়েছে' : 'Expense added successfully', 'success');
   });
   
   const updateExpense = (expense: Expense) => wrapOp(async () => {
     const { id, ...data } = expense;
-    await updateDoc(doc(db, 'expenses', id), data as any);
+    await updateDoc(doc(db, 'expenses', id), sanitize(data));
+    showNotification(language === 'bn' ? 'খরচ আপডেট হয়েছে' : 'Expense updated successfully', 'success');
   });
   
   const deleteExpense = (id: string) => wrapOp(async () => {
     await deleteDoc(doc(db, 'expenses', id));
+    showNotification(language === 'bn' ? 'খরচ ডিলিট হয়েছে' : 'Expense deleted successfully', 'success');
   });
 
   const addSale = (sale: Sale) => wrapOp(async () => {
     const { id, ...saleData } = sale;
-    await setDoc(doc(db, 'sales', id), saleData);
+    await setDoc(doc(db, 'sales', id), sanitize(saleData));
 
     // Stock update logic
     const product = products.find(p => p.id === sale.productId);
@@ -406,6 +562,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         totalDue: (customer.totalDue || 0) + sale.dueAmount
       });
     }
+    showNotification(language === 'bn' ? 'বিক্রয় সম্পন্ন হয়েছে' : 'Sale added successfully', 'success');
   });
 
   const receivePayment = (customerId: string, amount: number) => wrapOp(async () => {
@@ -432,6 +589,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         paymentStatus: newDue === 0 ? 'Full Paid' : 'Partial Paid'
       });
     }
+    showNotification(language === 'bn' ? 'পেমেন্ট গ্রহণ করা হয়েছে' : 'Payment received successfully', 'success');
   });
 
   const deleteSale = (id: string) => wrapOp(async () => {
@@ -459,6 +617,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     await deleteDoc(doc(db, 'sales', id));
+    showNotification(language === 'bn' ? 'বিক্রয় ডিলিট হয়েছে' : 'Sale deleted successfully', 'success');
   });
   
   const addReview = (productId: string, review: Review) => wrapOp(async () => {
@@ -473,10 +632,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       reviews: newReviews,
       rating: avgRating
     });
+    showNotification(language === 'bn' ? 'রিভিউ যোগ করা হয়েছে' : 'Review added successfully', 'success');
   });
 
   const updateAdmin = (adminData: BusinessState['admin']) => wrapOp(async () => {
-    await setDoc(doc(db, 'settings', 'shop'), adminData);
+    await setDoc(doc(db, 'settings', 'shop'), sanitize(adminData));
+    showNotification(language === 'bn' ? 'সেটিংস আপডেট হয়েছে' : 'Settings updated successfully', 'success');
   });
 
   // Fix: Corrected function to call setLanguageState and resolved redeclaration by renaming useState setter
@@ -486,12 +647,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       products, customers, sales, expenses, admin, language, theme, isLoggedIn, apiKey,
-      orders, cart, coupons, user, addToCart, removeFromCart, clearCart, placeOrder, updateOrderStatus,
+      orders, cart, coupons, user, addToCart, removeFromCart, clearCart, placeOrder, deleteOrder, updateOrderStatus,
       addProduct, updateProduct, deleteProduct, addSale, deleteSale, 
       addExpense, updateExpense, deleteExpense, 
       addCustomer, updateCustomer, deleteCustomer, receivePayment,
       updateAdmin, setLanguage, setApiKey, toggleTheme, login, logout, 
-      loginUser, logoutUser, toggleWishlist, applyCoupon, addReview, error
+      loginUser, logoutUser, toggleWishlist, applyCoupon, addReview, error,
+      notification, setNotification
     }}>
       {children}
     </StoreContext.Provider>

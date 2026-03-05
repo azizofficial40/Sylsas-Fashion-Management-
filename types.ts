@@ -95,7 +95,7 @@ export interface CartItem {
 
 export interface Order {
   id: string;
-  userId?: string; // For logged-in users
+  userId?: string | null; // For logged-in users
   customerName: string;
   phone: string;
   address: string;
@@ -104,11 +104,11 @@ export interface Order {
   totalAmount: number;
   deliveryCharge: number;
   discount: number;
-  couponCode?: string;
+  couponCode?: string | null;
   status: 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   date: string;
   paymentMethod: 'COD' | 'Bkash' | 'Nagad' | 'Rocket';
-  transactionId?: string;
+  transactionId?: string | null;
   timeline?: { status: string; date: string; note?: string }[];
 }
 
@@ -136,6 +136,7 @@ export interface BusinessState {
     bkash?: string;
     nagad?: string;
     rocket?: string;
+    whatsapp?: string;
   };
   apiKey?: string;
 }

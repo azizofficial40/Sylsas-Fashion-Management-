@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Product, Customer, Size, PaymentStatus, Sale } from '../types';
-import { Plus, Search, UserPlus, CheckCircle2, ChevronRight, X, ArrowLeft, Layers, Target, History, Trash2, Calendar, CreditCard, Clock, Wallet } from 'lucide-react';
+import { Plus, Search, UserPlus, CheckCircle2, ChevronRight, X, ArrowLeft, Layers, Target, History, Trash2, Calendar, CreditCard, Clock, Wallet, Package } from 'lucide-react';
 
 const SALES_T = {
   en: {
@@ -263,7 +263,13 @@ const Sales: React.FC = () => {
                   return (
                     <button key={product.id} onClick={() => { setSelectedProduct(product); setStep(3); }} className="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-white dark:border-slate-800 shadow-sm text-left group">
                       <div className="relative overflow-hidden rounded-[1.5rem] mb-4 aspect-square">
-                        <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                        {product.image ? (
+                          <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                        ) : (
+                          <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <Package size={24} className="text-slate-300" />
+                          </div>
+                        )}
                         <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-2 py-1 rounded-xl text-[9px] font-black uppercase dark:text-white">
                           {totalStock} in Stock
                         </div>
@@ -318,7 +324,13 @@ const Sales: React.FC = () => {
               <StepHeader title={t.adjust} subtitle="Adjusting totals" />
               <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-xl">
                 <div className="flex items-center gap-5 p-5 bg-slate-50 dark:bg-slate-800 rounded-3xl mb-8">
-                  <img src={selectedProduct?.image} className="w-20 h-20 rounded-2xl object-cover shadow-sm" />
+                  {selectedProduct?.image ? (
+                    <img src={selectedProduct.image} className="w-20 h-20 rounded-2xl object-cover shadow-sm" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                      <Package size={24} className="text-slate-300" />
+                    </div>
+                  )}
                   <div>
                     <h4 className="font-black text-slate-900 dark:text-white text-lg leading-tight">{selectedProduct?.name}</h4>
                     <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">{selectedSize} • {selectedColor} • {maxQty} left</p>

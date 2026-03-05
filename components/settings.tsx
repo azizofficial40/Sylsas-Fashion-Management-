@@ -87,7 +87,13 @@ const Settings: React.FC = () => {
               onClick={() => fileInputRef.current?.click()}
               className="w-24 h-24 rounded-[2rem] bg-slate-50 dark:bg-slate-800 border-4 border-white dark:border-slate-700 shadow-xl overflow-hidden mb-4 group relative"
             >
-              <img src={formData.image} className="w-full h-full object-cover" alt="Shop Logo" />
+              {formData.image ? (
+                <img src={formData.image} className="w-full h-full object-cover" alt="Shop Logo" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                  <ImageIcon size={40} />
+                </div>
+              )}
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <ImageIcon size={24} className="text-white" />
               </div>
@@ -157,6 +163,16 @@ const Settings: React.FC = () => {
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
               <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-4">{t.payment}</label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <div className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">Wa</div>
+                  <input 
+                    type="text" 
+                    className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-800 border-0 rounded-[2rem] outline-none font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-100 dark:focus:ring-emerald-900/30 transition-all"
+                    value={formData.whatsapp || ''}
+                    onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+                    placeholder="WhatsApp Number"
+                  />
+                </div>
                 <div className="relative">
                   <div className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">Bk</div>
                   <input 

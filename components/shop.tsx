@@ -5,8 +5,10 @@ import { ShoppingCart, Plus, Minus, X, ArrowRight, CheckCircle2, Search, Filter,
 import { Link, useNavigate } from 'react-router-dom';
 import { Product, StockVariant, Order } from '../types';
 
+import Toast from './Toast.tsx';
+
 const Shop: React.FC = () => {
-  const { products, cart, addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview } = useStore();
+  const { products, cart, addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, notification, setNotification } = useStore();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
@@ -88,7 +90,7 @@ const Shop: React.FC = () => {
     
     await placeOrder({
       id: Date.now().toString(),
-      userId: user?.id,
+      userId: user?.id || null,
       customerName: customerDetails.name,
       phone: customerDetails.phone,
       address: customerDetails.address,
@@ -97,11 +99,11 @@ const Shop: React.FC = () => {
       totalAmount: finalTotal,
       deliveryCharge,
       discount: discountAmount,
-      couponCode: appliedCoupon?.code,
+      couponCode: appliedCoupon?.code || null,
       status: 'Pending',
       date: new Date().toISOString(),
       paymentMethod,
-      transactionId: paymentMethod !== 'COD' ? transactionId : undefined,
+      transactionId: paymentMethod !== 'COD' ? transactionId : null,
       timeline: [{ status: 'Pending', date: new Date().toISOString(), note: 'Order placed successfully' }]
     });
     setCheckoutStep('success');
@@ -113,9 +115,16 @@ const Shop: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-white pb-20 selection:bg-indigo-100 dark:selection:bg-indigo-900/30">
+      {notification && (
+        <Toast 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification(null)} 
+        />
+      )}
       {/* WhatsApp Button */}
       <a 
-        href="https://wa.me/8801712345678" 
+        href={`https://wa.me/88${admin.whatsapp || '01618539338'}`} 
         target="_blank" 
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform animate-bounce"
@@ -130,7 +139,13 @@ const Shop: React.FC = () => {
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="relative">
                 <div className="absolute inset-0 bg-indigo-600 blur-lg opacity-20 group-hover:opacity-40 transition-opacity rounded-full"></div>
-                <img src={admin.image} className="w-10 h-10 rounded-xl object-cover relative z-10 shadow-sm border border-white/10" alt="Logo" />
+                {admin.image ? (
+                  <img src={admin.image} className="w-10 h-10 rounded-xl object-cover relative z-10 shadow-sm border border-white/10" alt="Logo" />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center relative z-10 shadow-sm border border-white/10 text-white font-bold">
+                    {admin.name.charAt(0)}
+                  </div>
+                )}
               </div>
               <span className="font-black text-xl tracking-tight group-hover:text-indigo-600 transition-colors">{admin.name}</span>
             </div>
@@ -227,7 +242,13 @@ const Shop: React.FC = () => {
               onClick={() => setSelectedProduct(product)}
             >
               <div className="aspect-[3/4] overflow-hidden relative bg-slate-100 dark:bg-slate-800">
-                <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
+                {product.image ? (
+                  <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
+                ) : (
+                  <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <ShoppingBag size={32} className="text-slate-300" />
+                  </div>
+                )}
                 <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
                   {product.category}
                 </div>
@@ -264,7 +285,13 @@ const Shop: React.FC = () => {
             
             <div className="w-full md:w-1/2 bg-slate-100 dark:bg-slate-800 h-96 md:h-auto flex flex-col">
               <div className="flex-1 relative overflow-hidden">
-                <img src={activeImage} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                {activeImage ? (
+                  <img src={activeImage} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                    <ShoppingBag size={48} className="text-slate-300" />
+                  </div>
+                )}
               </div>
               {selectedProduct.gallery && selectedProduct.gallery.length > 0 && (
                 <div className="p-4 flex gap-2 overflow-x-auto">
@@ -272,7 +299,7 @@ const Shop: React.FC = () => {
                     onClick={() => setActiveImage(selectedProduct.image)}
                     className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${activeImage === selectedProduct.image ? 'border-indigo-600' : 'border-transparent'}`}
                   >
-                    <img src={selectedProduct.image} className="w-full h-full object-cover" />
+                    {selectedProduct.image ? <img src={selectedProduct.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-200" />}
                   </button>
                   {selectedProduct.gallery.map((img, idx) => (
                     <button 
@@ -280,7 +307,7 @@ const Shop: React.FC = () => {
                       onClick={() => setActiveImage(img)}
                       className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? 'border-indigo-600' : 'border-transparent'}`}
                     >
-                      <img src={img} className="w-full h-full object-cover" />
+                      {img ? <img src={img} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-200" />}
                     </button>
                   ))}
                 </div>
@@ -632,7 +659,13 @@ const Shop: React.FC = () => {
                     <div className="space-y-4">
                       {cart.map((item, idx) => (
                         <div key={idx} className="flex gap-4 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <img src={item.product.image} className="w-20 h-20 rounded-xl object-cover" />
+                          {item.product.image ? (
+                            <img src={item.product.image} className="w-20 h-20 rounded-xl object-cover" />
+                          ) : (
+                            <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                              <ShoppingBag size={20} className="text-slate-300" />
+                            </div>
+                          )}
                           <div className="flex-1">
                             <h4 className="font-bold text-sm line-clamp-1">{item.product.name}</h4>
                             <p className="text-xs text-slate-500 font-bold mt-1">{item.variant.size} • {item.variant.color}</p>

@@ -107,7 +107,13 @@ const Profile: React.FC = () => {
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
-                            <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                            {item.product.image ? (
+                              <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                <Package size={20} className="text-slate-300" />
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{item.product.name}</p>
@@ -156,7 +162,13 @@ const Profile: React.FC = () => {
                 {wishlistProducts.map(product => (
                   <div key={product.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex gap-4">
                     <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shrink-0">
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      {product.image ? (
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                          <Package size={24} className="text-slate-300" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-slate-900 dark:text-white truncate">{product.name}</h3>
