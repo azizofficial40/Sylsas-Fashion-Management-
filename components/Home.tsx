@@ -102,20 +102,35 @@ const Home: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {['Men', 'Women', 'Kids', 'Accessories'].map((cat, i) => (
+          {collections.length > 0 ? collections.map((col) => (
             <div 
-              key={cat} 
+              key={col.id} 
               className="group relative aspect-[4/5] rounded-[2.5rem] overflow-hidden cursor-pointer"
-              onClick={() => navigate(`/shop?category=${cat}`)}
+              onClick={() => navigate(`/shop?collection=${col.id}`)}
             >
-              <img src={`https://picsum.photos/seed/${cat}/600/800`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={cat} />
+              <img src={col.image || `https://picsum.photos/seed/${col.name}/600/800`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={col.name} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
               <div className="absolute bottom-8 left-8">
-                <h3 className="text-2xl font-black text-white tracking-tight">{cat}</h3>
-                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">Explore Collection</p>
+                <h3 className="text-2xl font-black text-white tracking-tight">{col.name}</h3>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">{col.productIds.length} Products</p>
               </div>
             </div>
-          ))}
+          )) : (
+            ['Men', 'Women', 'Kids', 'Accessories'].map((cat, i) => (
+              <div 
+                key={cat} 
+                className="group relative aspect-[4/5] rounded-[2.5rem] overflow-hidden cursor-pointer"
+                onClick={() => navigate(`/shop?category=${cat}`)}
+              >
+                <img src={`https://picsum.photos/seed/${cat}/600/800`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={cat} />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                <div className="absolute bottom-8 left-8">
+                  <h3 className="text-2xl font-black text-white tracking-tight">{cat}</h3>
+                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">Explore Collection</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 

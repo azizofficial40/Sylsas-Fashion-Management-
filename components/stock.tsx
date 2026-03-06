@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { useStore } from '../store';
 import { Product, Size, StockVariant } from '../types';
 import { Plus, Search, AlertCircle, Edit3, Trash2, X, Boxes, Tag, LayoutGrid, List, ChevronDown, Camera, Image as ImageIcon, Upload, Clock } from 'lucide-react';
+import { compressImage } from '../utils/image';
 
 const STOCK_T = {
   en: {
@@ -42,6 +43,7 @@ const Stock: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const initialProductState: Partial<Product> = {
@@ -112,29 +114,29 @@ const Stock: React.FC = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, isGallery: boolean = false) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, isGallery: boolean = false) => {
     const files = e.target.files;
     if (!files) return;
 
     if (isGallery) {
       const newImages: string[] = [];
-      Array.from(files).forEach((file: File) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newImages.push(reader.result as string);
-          if (newImages.length === files.length) {
-            setNewProduct(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...newImages] }));
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const compressed = await compressImage(files[i]);
+          newImages.push(compressed);
+        } catch (error) {
+          console.error("Error compressing gallery image:", error);
+        }
+      }
+      setNewProduct(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...newImages] }));
     } else {
       const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProduct({ ...newProduct, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file);
+        setNewProduct({ ...newProduct, image: compressed });
+      } catch (error) {
+        console.error("Error compressing image:", error);
+      }
     }
   };
 
@@ -142,6 +144,11 @@ const Stock: React.FC = () => {
     setNewProduct(p);
     setEditingId(p.id);
     setIsAdding(true);
+  };
+
+  const handleDelete = (id: string) => {
+    deleteProduct(id);
+    setDeletingId(null);
   };
 
   const addVariantField = () => setNewProduct({ ...newProduct, variants: [...(newProduct.variants || []), { size: 'M', color: 'Black', material: 'Cotton', quantity: 0 }] });
@@ -247,7 +254,14 @@ const Stock: React.FC = () => {
 
               <div className="flex flex-row md:flex-col gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity w-full md:w-auto mt-4 md:mt-0">
                 <button onClick={() => startEdit(product)} className="flex-1 md:flex-none w-full md:w-10 h-10 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"><Edit3 size={18}/></button>
-                <button onClick={() => { if(confirm('Permanently remove this item?')) deleteProduct(product.id); }} className="flex-1 md:flex-none w-full md:w-10 h-10 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={18}/></button>
+                {deletingId === product.id ? (
+                  <div className="flex gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-1 rounded-xl">
+                    <button onClick={() => handleDelete(product.id)} className="px-3 py-1 bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">Yes</button>
+                    <button onClick={() => setDeletingId(null)} className="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-black uppercase tracking-widest">No</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setDeletingId(product.id)} className="flex-1 md:flex-none w-full md:w-10 h-10 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={18}/></button>
+                )}
               </div>
             </div>
           );

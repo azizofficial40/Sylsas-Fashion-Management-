@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { ShoppingCart, Plus, Minus, X, ArrowRight, ArrowLeft, CheckCircle2, Search, Filter, ShoppingBag, CreditCard, Banknote, Copy, MessageCircle, Tag, MapPin, User, Star, Image as ImageIcon, Lock } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Product, StockVariant, Order } from '../types';
 
 import Toast from './Toast.tsx';
@@ -10,8 +10,9 @@ import Footer from './Footer.tsx';
 import Navbar from './Navbar.tsx';
 
 const Shop: React.FC = () => {
-  const { products = [], cart = [], addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, handleWhatsAppOrder, notification, setNotification } = useStore();
+  const { products = [], cart = [], addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, handleWhatsAppOrder, notification, setNotification, collections = [] } = useStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
   const [customerDetails, setCustomerDetails] = useState({ name: '', phone: '', address: '', city: '', orderNotes: '' });
@@ -21,6 +22,7 @@ const Shop: React.FC = () => {
   const [activeImage, setActiveImage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('All');
   const [selectedColor, setSelectedColor] = useState<string>('All');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
@@ -39,6 +41,32 @@ const Shop: React.FC = () => {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    const colId = searchParams.get('collection');
+    const cat = searchParams.get('category');
+    const prodId = searchParams.get('product');
+
+    if (colId) {
+      setSelectedCollectionId(colId);
+      setSelectedCategory('All');
+    } else if (cat) {
+      setSelectedCategory(cat);
+      setSelectedCollectionId(null);
+    } else {
+      // If neither is present, we might want to reset or keep current state. 
+      // But if we navigated to /shop without params, we should probably reset.
+      // However, this useEffect runs on mount and update.
+      // If we just change filters in UI, searchParams won't change unless we update URL.
+      // The UI updates state directly.
+      // So we only want to sync from URL if URL has params.
+    }
+
+    if (prodId) {
+      const product = products.find(p => p.id === prodId);
+      if (product) setSelectedProduct(product);
+    }
+  }, [searchParams, products]);
 
   useEffect(() => {
     if (selectedProduct) {
@@ -66,6 +94,7 @@ const Shop: React.FC = () => {
     .filter(p => 
       p.isVisible !== false &&
       p.status !== 'Draft' &&
+      (!selectedCollectionId || (collections.find(c => c.id === selectedCollectionId)?.productIds.includes(p.id))) &&
       (selectedCategory === 'All' || p.category === selectedCategory) &&
       (selectedSize === 'All' || p.variants.some(v => v.size === selectedSize)) &&
       (selectedColor === 'All' || p.variants.some(v => v.color === selectedColor)) &&

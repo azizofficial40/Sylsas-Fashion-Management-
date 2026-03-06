@@ -159,13 +159,14 @@ export interface Collection {
 export interface FlashSale {
   id: string;
   title: string;
+  image?: string;
   endTime: string;
   discountPercentage: number;
   productIds: string[];
   isActive: boolean;
 }
 
-export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons' | 'analytics';
+export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons' | 'analytics' | 'websiteManagement';
 
 export interface BusinessState {
   products: Product[];

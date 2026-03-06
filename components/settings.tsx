@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Save, User, Phone, Image as ImageIcon, Briefcase, CheckCircle, Lock } from 'lucide-react';
+import { compressImage } from '../utils/image';
 
 const SETTINGS_T = {
   en: {
@@ -42,14 +43,15 @@ const Settings: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedImage = await compressImage(file);
+        setFormData({ ...formData, image: compressedImage });
+      } catch (error) {
+        console.error("Error compressing image:", error);
+      }
     }
   };
 

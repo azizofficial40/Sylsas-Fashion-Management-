@@ -13,9 +13,7 @@ import Reports from './components/reports.tsx';
 import SalesAnalytics from './components/SalesAnalytics.tsx';
 import AIAssistant from './components/ai-assistant.tsx';
 import Settings from './components/settings.tsx';
-import Banners from './components/banners.tsx';
-import Collections from './components/collections.tsx';
-import FlashSales from './components/flash-sales.tsx';
+import WebsiteManagement from './components/WebsiteManagement.tsx';
 import Shop from './components/shop.tsx';
 import Orders from './components/orders.tsx';
 import { 
@@ -145,9 +143,7 @@ const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) =>
     { id: 'customers', label: t.customers, icon: Users },
     { id: 'expense', label: t.expense, icon: Wallet },
     { id: 'report', label: t.report, icon: PieChart },
-    { id: 'banners', label: language === 'bn' ? 'ব্যানার' : 'Banners', icon: LayoutGrid },
-    { id: 'collections', label: language === 'bn' ? 'কালেকশন' : 'Collections', icon: Archive },
-    { id: 'flashSales', label: language === 'bn' ? 'ফ্ল্যাশ সেল' : 'Flash Sales', icon: Zap },
+    { id: 'websiteManagement', label: language === 'bn' ? 'ওয়েবসাইট' : 'Website', icon: Layers },
     { id: 'analytics', label: t.analytics, icon: TrendingUp },
   ];
 
@@ -284,9 +280,7 @@ const AdminLayout: React.FC = () => {
       case 'expense': return <Expenses />;
       case 'customers': return <Customers />;
       case 'report': return <Reports />;
-      case 'banners': return <Banners />;
-      case 'collections': return <Collections />;
-      case 'flashSales': return <FlashSales />;
+      case 'websiteManagement': return <WebsiteManagement />;
       case 'analytics': return <SalesAnalytics />;
       case 'ai': return <AIAssistant />;
       case 'settings': return <Settings />;

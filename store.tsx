@@ -39,6 +39,15 @@ interface StoreContextType extends BusinessState {
   addExpense: (expense: Expense) => Promise<void>;
   updateExpense: (expense: Expense) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  addBanner: (banner: Omit<Banner, 'id'>) => Promise<void>;
+  updateBanner: (banner: Banner) => Promise<void>;
+  deleteBanner: (id: string) => Promise<void>;
+  addCollection: (collection: Omit<Collection, 'id'>) => Promise<void>;
+  updateCollection: (collection: Collection) => Promise<void>;
+  deleteCollection: (id: string) => Promise<void>;
+  addFlashSale: (flashSale: Omit<FlashSale, 'id'>) => Promise<void>;
+  updateFlashSale: (flashSale: FlashSale) => Promise<void>;
+  deleteFlashSale: (id: string) => Promise<void>;
   addCustomer: (customer: Customer) => Promise<void>;
   updateCustomer: (customer: Customer) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
@@ -546,6 +555,63 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showNotification(language === 'bn' ? 'প্রোডাক্ট ডিলিট হয়েছে' : 'Product deleted successfully', 'success');
   });
 
+  const addBanner = (banner: Omit<Banner, 'id'>) => wrapOp(async () => {
+    await addDoc(collection(db, 'banners'), sanitize({
+      ...banner,
+      createdAt: new Date().toISOString()
+    }));
+    showNotification(language === 'bn' ? 'ব্যানার যুক্ত হয়েছে' : 'Banner added successfully', 'success');
+  });
+
+  const updateBanner = (banner: Banner) => wrapOp(async () => {
+    const { id, ...data } = banner;
+    await updateDoc(doc(db, 'banners', id), sanitize(data));
+    showNotification(language === 'bn' ? 'ব্যানার আপডেট হয়েছে' : 'Banner updated successfully', 'success');
+  });
+
+  const deleteBanner = (id: string) => wrapOp(async () => {
+    await deleteDoc(doc(db, 'banners', id));
+    showNotification(language === 'bn' ? 'ব্যানার ডিলিট হয়েছে' : 'Banner deleted successfully', 'success');
+  });
+
+  const addCollection = (collectionData: Omit<Collection, 'id'>) => wrapOp(async () => {
+    await addDoc(collection(db, 'collections'), sanitize({
+      ...collectionData,
+      createdAt: new Date().toISOString()
+    }));
+    showNotification(language === 'bn' ? 'কালেকশন যুক্ত হয়েছে' : 'Collection added successfully', 'success');
+  });
+
+  const updateCollection = (collectionData: Collection) => wrapOp(async () => {
+    const { id, ...data } = collectionData;
+    await updateDoc(doc(db, 'collections', id), sanitize(data));
+    showNotification(language === 'bn' ? 'কালেকশন আপডেট হয়েছে' : 'Collection updated successfully', 'success');
+  });
+
+  const deleteCollection = (id: string) => wrapOp(async () => {
+    await deleteDoc(doc(db, 'collections', id));
+    showNotification(language === 'bn' ? 'কালেকশন ডিলিট হয়েছে' : 'Collection deleted successfully', 'success');
+  });
+
+  const addFlashSale = (flashSale: Omit<FlashSale, 'id'>) => wrapOp(async () => {
+    await addDoc(collection(db, 'flashSales'), sanitize({
+      ...flashSale,
+      createdAt: new Date().toISOString()
+    }));
+    showNotification(language === 'bn' ? 'ফ্ল্যাশ সেল যুক্ত হয়েছে' : 'Flash Sale added successfully', 'success');
+  });
+
+  const updateFlashSale = (flashSale: FlashSale) => wrapOp(async () => {
+    const { id, ...data } = flashSale;
+    await updateDoc(doc(db, 'flashSales', id), sanitize(data));
+    showNotification(language === 'bn' ? 'ফ্ল্যাশ সেল আপডেট হয়েছে' : 'Flash Sale updated successfully', 'success');
+  });
+
+  const deleteFlashSale = (id: string) => wrapOp(async () => {
+    await deleteDoc(doc(db, 'flashSales', id));
+    showNotification(language === 'bn' ? 'ফ্ল্যাশ সেল ডিলিট হয়েছে' : 'Flash Sale deleted successfully', 'success');
+  });
+
   const addCustomer = (customer: Customer) => wrapOp(async () => {
     const { id, ...data } = customer;
     await setDoc(doc(db, 'customers', id), sanitize(data));
@@ -719,6 +785,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       orders, cart, coupons, users, banners, collections, flashSales, user, addToCart, removeFromCart, clearCart, placeOrder, deleteOrder, updateOrderStatus,
       addProduct, updateProduct, deleteProduct, addSale, deleteSale, 
       addExpense, updateExpense, deleteExpense, 
+      addBanner, updateBanner, deleteBanner,
+      addCollection, updateCollection, deleteCollection,
+      addFlashSale, updateFlashSale, deleteFlashSale,
       addCustomer, updateCustomer, deleteCustomer, receivePayment,
       updateAdmin, setLanguage, setApiKey, toggleTheme, login, logout, 
       loginUser, logoutUser, toggleWishlist, applyCoupon, addReview, handleWhatsAppOrder, error,
