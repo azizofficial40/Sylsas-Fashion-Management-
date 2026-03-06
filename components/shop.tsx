@@ -141,7 +141,7 @@ const Shop: React.FC = () => {
 
   const handlePlaceOrder = async () => {
     if (!customerDetails.name || !customerDetails.phone || !customerDetails.address || !customerDetails.city) return;
-    if (paymentMethod !== 'COD' && !transactionId) return;
+    if (!transactionId) return;
     
     await placeOrder({
       id: Date.now().toString(),
@@ -821,7 +821,7 @@ const Shop: React.FC = () => {
                         className={`p-4 rounded-2xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${paymentMethod === 'COD' ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300'}`}
                       >
                         <Banknote size={24} />
-                        Cash on Delivery
+                        <span className="text-center">Cash on Delivery<br/><span className="text-[10px] font-normal opacity-70">(Advance Delivery Charge)</span></span>
                       </button>
                       <button 
                         onClick={() => setPaymentMethod('Bkash')}
@@ -846,28 +846,67 @@ const Shop: React.FC = () => {
                       </button>
                     </div>
 
-                    {paymentMethod !== 'COD' && (
-                      <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2">
-                        <div className="text-center space-y-2">
-                          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Send Money to this Number</p>
-                          <div className="flex items-center justify-center gap-3">
-                            <span className="text-2xl font-black tracking-widest">
-                              {paymentMethod === 'Bkash' ? admin.bkash || 'N/A' : 
-                               paymentMethod === 'Nagad' ? admin.nagad || 'N/A' : 
-                               admin.rocket || 'N/A'}
-                            </span>
-                            <button onClick={() => copyToClipboard(
-                              paymentMethod === 'Bkash' ? admin.bkash || '' : 
-                              paymentMethod === 'Nagad' ? admin.nagad || '' : 
-                              admin.rocket || ''
-                            )} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                              <Copy size={16} />
-                            </button>
+                    <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-3xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="text-center space-y-4">
+                        {paymentMethod === 'COD' ? (
+                          <div className="space-y-3">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Pay Delivery Charge to Confirm</p>
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-pink-500">Bkash</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-sm">{admin.bkash || 'N/A'}</span>
+                                  <button onClick={() => copyToClipboard(admin.bkash || '')} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><Copy size={12} /></button>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-orange-500">Nagad</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-sm">{admin.nagad || 'N/A'}</span>
+                                  <button onClick={() => copyToClipboard(admin.nagad || '')} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><Copy size={12} /></button>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-purple-500">Rocket</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-sm">{admin.rocket || 'N/A'}</span>
+                                  <button onClick={() => copyToClipboard(admin.rocket || '')} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><Copy size={12} /></button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl">
+                              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">Payable Now (Delivery Charge)</p>
+                              <p className="text-2xl font-black text-indigo-700 dark:text-indigo-300">৳{deliveryCharge}</p>
+                              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Due on Delivery: ৳{finalTotal - deliveryCharge}</p>
+                            </div>
                           </div>
-                          <p className="text-xs font-bold text-slate-500">Personal Number • Send Money</p>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest ml-4 text-slate-400">Transaction ID</label>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Send Money to this Number</p>
+                            <div className="flex items-center justify-center gap-3">
+                              <span className="text-2xl font-black tracking-widest">
+                                {paymentMethod === 'Bkash' ? admin.bkash || 'N/A' : 
+                                 paymentMethod === 'Nagad' ? admin.nagad || 'N/A' : 
+                                 admin.rocket || 'N/A'}
+                              </span>
+                              <button onClick={() => copyToClipboard(
+                                paymentMethod === 'Bkash' ? admin.bkash || '' : 
+                                paymentMethod === 'Nagad' ? admin.nagad || '' : 
+                                admin.rocket || ''
+                              )} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                <Copy size={16} />
+                              </button>
+                            </div>
+                            <p className="text-xs font-bold text-slate-500">Personal Number • Send Money</p>
+                            <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl">
+                              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">Total Payable Amount</p>
+                              <p className="text-2xl font-black text-indigo-700 dark:text-indigo-300">৳{finalTotal}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-2 text-left">
+                          <label className="text-xs font-black uppercase tracking-widest ml-4 text-slate-400">Transaction ID <span className="text-rose-500">*</span></label>
                           <input 
                             type="text" 
                             placeholder="e.g. 8JHS72..." 
@@ -875,9 +914,12 @@ const Shop: React.FC = () => {
                             value={transactionId}
                             onChange={e => setTransactionId(e.target.value)}
                           />
+                          {paymentMethod === 'COD' && (
+                            <p className="text-[10px] text-rose-500 font-bold ml-4">* Delivery charge must be paid in advance to confirm order.</p>
+                          )}
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     {/* Coupon Section */}
                     <div className="space-y-2">
@@ -932,7 +974,7 @@ const Shop: React.FC = () => {
                   </div>
                   <button 
                     onClick={handlePlaceOrder} 
-                    disabled={paymentMethod !== 'COD' && !transactionId}
+                    disabled={!transactionId}
                     className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     Confirm Order <CheckCircle2 size={20} />

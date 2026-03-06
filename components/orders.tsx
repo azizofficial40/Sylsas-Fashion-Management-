@@ -300,22 +300,39 @@ const Orders: React.FC = () => {
                       <span className="leading-tight">{order.address}</span>
                     </div>
                     
-                    <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700">
-                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Payment Info</h4>
-                      <div className="flex items-center gap-3 text-sm font-bold">
-                        <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500">
-                          <CreditCard size={14} />
-                        </div>
-                        <span className="flex items-center gap-2">
-                          {order.paymentMethod}
-                          {order.transactionId && (
-                            <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-slate-600 dark:text-slate-300">
-                              TRX: {order.transactionId}
+                      <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Payment Info</h4>
+                        <div className="flex items-start gap-3 text-sm font-bold">
+                          <div className="w-8 h-8 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 mt-1">
+                            <CreditCard size={14} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="flex items-center gap-2">
+                              {order.paymentMethod === 'COD' ? 'Cash on Delivery' : order.paymentMethod}
+                              {order.paymentMethod === 'COD' && (
+                                <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-[10px] uppercase tracking-widest">
+                                  Advance Paid
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
+                            {order.transactionId && (
+                              <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-mono text-slate-600 dark:text-slate-300 w-fit">
+                                TRX: {order.transactionId}
+                              </span>
+                            )}
+                            <div className="text-xs text-slate-500 mt-1">
+                              {order.paymentMethod === 'COD' ? (
+                                <>
+                                  <p>Paid: ৳{order.deliveryCharge} (Delivery Charge)</p>
+                                  <p className="text-rose-500">Due: ৳{order.totalAmount - order.deliveryCharge}</p>
+                                </>
+                              ) : (
+                                <p className="text-emerald-500">Paid: ৳{order.totalAmount} (Full Payment)</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
                   </div>
 
                   <div>
