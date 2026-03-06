@@ -39,17 +39,23 @@ const CUSTOMERS_T = {
 };
 
 const Customers: React.FC = () => {
-  const { customers, sales, receivePayment, language } = useStore();
+  const { customers = [], sales = [], receivePayment, language, users = [] } = useStore();
   const t = CUSTOMERS_T[language];
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState(0);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [viewType, setViewType] = useState<'ledger' | 'registered'>('ledger');
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.phone.includes(searchTerm)
+  );
+
+  const filteredUsers = users.filter(u => 
+    u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const customerDetails = customers.find(c => c.id === selectedCustomer);
@@ -78,8 +84,19 @@ const Customers: React.FC = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between px-2">
         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">{t.title}</h2>
-        <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-50 dark:border-slate-800">
-          <User size={24} />
+        <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+          <button 
+            onClick={() => setViewType('ledger')}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewType === 'ledger' ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+          >
+            Ledger
+          </button>
+          <button 
+            onClick={() => setViewType('registered')}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewType === 'registered' ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+          >
+            Registered
+          </button>
         </div>
       </div>
 
@@ -95,38 +112,66 @@ const Customers: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {filteredCustomers.map(customer => (
-          <button 
-            key={customer.id}
-            onClick={() => setSelectedCustomer(customer.id)}
-            className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all hover:shadow-xl"
-          >
-            <div className="flex items-center gap-5">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-sm ${customer.totalDue > 0 ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-500' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500'}`}>
-                <User size={28} />
+        {viewType === 'ledger' ? (
+          filteredCustomers.map(customer => (
+            <button 
+              key={customer.id}
+              onClick={() => setSelectedCustomer(customer.id)}
+              className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all hover:shadow-xl"
+            >
+              <div className="flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-sm ${customer.totalDue > 0 ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-500' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500'}`}>
+                  <User size={28} />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-black text-slate-900 dark:text-white">{customer.name}</h4>
+                  <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase mt-1 tracking-widest">{customer.phone}</p>
+                </div>
               </div>
-              <div className="text-left">
-                <h4 className="font-black text-slate-900 dark:text-white">{customer.name}</h4>
-                <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase mt-1 tracking-widest">{customer.phone}</p>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  {customer.totalDue > 0 ? (
+                    <div className="flex items-center gap-1.5 text-rose-600 font-black text-xs mb-1.5 bg-rose-50 dark:bg-rose-950/30 px-3 py-1 rounded-full animate-pulse">
+                      <AlertTriangle size={12} /> {t.dueAlert}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-emerald-600 font-black text-[10px] mb-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full uppercase tracking-tighter">
+                      <CheckCircle size={10} /> {t.clearAlert}
+                    </div>
+                  )}
+                  <p className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest leading-none">৳{customer.totalDue.toLocaleString()}</p>
+                </div>
+                <ChevronRight size={18} className="text-slate-200 dark:text-slate-800 group-hover:translate-x-1 transition-transform" />
               </div>
-            </div>
-            <div className="flex items-center gap-6">
+            </button>
+          ))
+        ) : (
+          filteredUsers.map(user => (
+            <div key={user.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-white dark:border-slate-800 shadow-sm flex items-center justify-between group transition-all hover:shadow-xl">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-sm">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} className="w-full h-full object-cover rounded-2xl" />
+                  ) : (
+                    <User size={28} />
+                  )}
+                </div>
+                <div className="text-left">
+                  <h4 className="font-black text-slate-900 dark:text-white">{user.name || 'Anonymous'}</h4>
+                  <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase mt-1 tracking-widest">{user.email}</p>
+                </div>
+              </div>
               <div className="text-right">
-                {customer.totalDue > 0 ? (
-                  <div className="flex items-center gap-1.5 text-rose-600 font-black text-xs mb-1.5 bg-rose-50 dark:bg-rose-950/30 px-3 py-1 rounded-full animate-pulse">
-                    <AlertTriangle size={12} /> {t.dueAlert}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-emerald-600 font-black text-[10px] mb-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full uppercase tracking-tighter">
-                    <CheckCircle size={10} /> {t.clearAlert}
-                  </div>
-                )}
-                <p className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest leading-none">৳{customer.totalDue.toLocaleString()}</p>
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
+                  ID: {user.id.slice(0, 8)}...
+                </span>
+                <p className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest mt-2">
+                  Role: {user.role || 'Customer'}
+                </p>
               </div>
-              <ChevronRight size={18} className="text-slate-200 dark:text-slate-800 group-hover:translate-x-1 transition-transform" />
             </div>
-          </button>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Detail Panel */}

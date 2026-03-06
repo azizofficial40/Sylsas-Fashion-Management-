@@ -20,6 +20,7 @@ interface StoreContextType extends BusinessState {
   orders: Order[];
   cart: CartItem[];
   coupons: Coupon[];
+  users: UserProfile[];
   user: UserProfile | null;
   addToCart: (item: CartItem) => void;
   removeFromCart: (productId: string, variant: StockVariant) => void;
@@ -73,6 +74,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [cart, setCart] = useState<CartItem[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [user, setUser] = useState<UserProfile | null>(() => loadSettings('user', null));
   
   // Fix: Renamed setter to setLanguageState to avoid name collision with the setLanguage function
@@ -222,6 +224,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleFirebaseError
     );
 
+    const unsubUsersList = onSnapshot(collection(db, 'users'), 
+      (snapshot) => {
+        setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
+      },
+      handleFirebaseError
+    );
+
     const unsubAdmin = onSnapshot(doc(db, 'settings', 'shop'), 
       (snapshot) => {
         if (snapshot.exists()) {
@@ -257,6 +266,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unsubOrders();
       unsubExpenses();
       unsubCoupons();
+      unsubUsersList();
       unsubAdmin();
       unsubUser();
     };
@@ -647,7 +657,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       products, customers, sales, expenses, admin, language, theme, isLoggedIn, apiKey,
-      orders, cart, coupons, user, addToCart, removeFromCart, clearCart, placeOrder, deleteOrder, updateOrderStatus,
+      orders, cart, coupons, users, user, addToCart, removeFromCart, clearCart, placeOrder, deleteOrder, updateOrderStatus,
       addProduct, updateProduct, deleteProduct, addSale, deleteSale, 
       addExpense, updateExpense, deleteExpense, 
       addCustomer, updateCustomer, deleteCustomer, receivePayment,

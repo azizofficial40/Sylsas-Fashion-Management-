@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useStore } from '../store';
+import { TabType } from '../types';
 import { 
   TrendingUp, 
   Coins, 
@@ -9,7 +10,8 @@ import {
   Package,
   Clock,
   ChevronRight,
-  Target
+  Target,
+  ShoppingBag
 } from 'lucide-react';
 
 const DASHBOARD_T = {
@@ -65,8 +67,8 @@ const DashboardCard: React.FC<{
   </div>
 );
 
-const Dashboard: React.FC = () => {
-  const { sales, expenses, products, language } = useStore();
+const Dashboard: React.FC<{ onNavigate?: (tab: TabType) => void }> = ({ onNavigate }) => {
+  const { sales = [], expenses = [], products = [], language } = useStore();
   const t = DASHBOARD_T[language];
 
   const today = new Date().toLocaleDateString();
@@ -125,6 +127,27 @@ const Dashboard: React.FC = () => {
           trend="-2%"
         />
       </div>
+
+      {/* Quick Actions */}
+      <section className="grid grid-cols-4 gap-4">
+        {[
+          { icon: Package, label: language === 'bn' ? 'নতুন প্রোডাক্ট' : 'New Product', color: 'bg-indigo-600', tab: 'stock' },
+          { icon: ShoppingBag, label: language === 'bn' ? 'অর্ডার দেখুন' : 'View Orders', color: 'bg-emerald-600', tab: 'orders' },
+          { icon: Target, label: language === 'bn' ? 'রিপোর্ট' : 'Reports', color: 'bg-amber-600', tab: 'report' },
+          { icon: Coins, label: language === 'bn' ? 'খরচ যোগ' : 'Add Expense', color: 'bg-rose-600', tab: 'expense' }
+        ].map((action, i) => (
+          <div 
+            key={i} 
+            className="flex flex-col items-center gap-2 group cursor-pointer"
+            onClick={() => onNavigate?.(action.tab as TabType)}
+          >
+            <div className={`${action.color} text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform active:scale-90`}>
+              <action.icon size={24} />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center">{action.label}</span>
+          </div>
+        ))}
+      </section>
 
       {/* Activity Section */}
       <section>

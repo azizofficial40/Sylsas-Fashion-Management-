@@ -6,6 +6,7 @@ export type Theme = 'light' | 'dark';
 export interface StockVariant {
   size: Size;
   color: string;
+  material?: string;
   quantity: number;
 }
 
@@ -21,14 +22,37 @@ export interface Review {
 export interface Product {
   id: string;
   name: string;
+  title: string;
   category: string;
+  subcategory?: string;
+  brandName?: string;
+  sku: string;
   image: string;
-  gallery?: string[];
+  gallery: string[];
+  videoUrl?: string;
   purchasePrice: number;
+  regularPrice: number;
   salePrice: number;
+  discountPercentage: number;
+  shortDescription: string;
+  description: string;
+  features: string[]; // Bullet points
   variants: StockVariant[];
   reviews?: Review[];
   rating?: number;
+  tags: string[];
+  weight?: string;
+  deliveryCharge: number;
+  estimatedDelivery: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  isNewArrival: boolean;
+  isBestSeller: boolean;
+  isFeatured: boolean;
+  isTrending: boolean;
+  isVisible: boolean;
+  status: 'Published' | 'Draft';
 }
 
 export interface Customer {
@@ -112,7 +136,7 @@ export interface Order {
   timeline?: { status: string; date: string; note?: string }[];
 }
 
-export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons';
+export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons' | 'analytics';
 
 export interface BusinessState {
   products: Product[];
@@ -121,6 +145,7 @@ export interface BusinessState {
   orders: Order[];
   expenses: Expense[];
   coupons: Coupon[];
+  users: UserProfile[];
   language: Language;
   theme: Theme;
   isLoggedIn: boolean;

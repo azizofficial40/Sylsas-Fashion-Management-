@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { User, Package, Heart, MapPin, LogOut, ChevronRight, Clock, CheckCircle2, XCircle, Truck } from 'lucide-react';
+import Footer from './Footer.tsx';
 
 const Profile: React.FC = () => {
-  const { user, orders, products, logoutUser } = useStore();
+  const { user, orders = [], products = [], logoutUser } = useStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'orders' | 'wishlist'>('orders');
 
@@ -193,6 +194,7 @@ const Profile: React.FC = () => {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

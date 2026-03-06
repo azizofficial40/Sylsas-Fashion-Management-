@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { Order } from '../types';
-import { Package, Phone, MapPin, Clock, CheckCircle, XCircle, Truck, ShoppingBag, ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
+import { Package, Phone, MapPin, Clock, CheckCircle, XCircle, Truck, ShoppingBag, ChevronDown, ChevronUp, CreditCard, Calendar, Filter, Search } from 'lucide-react';
 
 const ORDERS_T = {
   en: {
@@ -21,7 +21,18 @@ const ORDERS_T = {
     customer: 'Customer Details',
     actions: 'Update Status',
     accept: 'Accept Order',
-    reject: 'Reject & Delete'
+    reject: 'Reject & Delete',
+    filters: {
+      all: 'All Time',
+      today: 'Today',
+      yesterday: 'Yesterday',
+      thisWeek: 'This Week',
+      thisMonth: 'This Month',
+      custom: 'Custom Range',
+      date: 'Date',
+      start: 'Start Date',
+      end: 'End Date'
+    }
   },
   bn: {
     title: 'অনলাইন অর্ডার',
@@ -39,20 +50,88 @@ const ORDERS_T = {
     customer: 'কাস্টমার তথ্য',
     actions: 'স্ট্যাটাস পরিবর্তন',
     accept: 'অর্ডার গ্রহণ করুন',
-    reject: 'অর্ডার বাতিল ও ডিলেট'
+    reject: 'অর্ডার বাতিল ও ডিলেট',
+    filters: {
+      all: 'সব সময়',
+      today: 'আজ',
+      yesterday: 'গতকাল',
+      thisWeek: 'এই সপ্তাহ',
+      thisMonth: 'এই মাস',
+      custom: 'কাস্টম রেঞ্জ',
+      date: 'তারিখ',
+      start: 'শুরুর তারিখ',
+      end: 'শেষের তারিখ'
+    }
   }
 };
 
 const Orders: React.FC = () => {
-  const { orders, updateOrderStatus, deleteOrder, language } = useStore();
+  const { orders = [], updateOrderStatus, deleteOrder, language } = useStore();
   const t = ORDERS_T[language];
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'All'>('All');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Date Filters
+  const [dateFilterType, setDateFilterType] = useState<'All' | 'Today' | 'Yesterday' | 'Week' | 'Month' | 'Custom'>('All');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
-  const filteredOrders = filterStatus === 'All' 
-    ? orders 
-    : orders.filter(o => o.status === filterStatus);
+  const filteredOrders = useMemo(() => {
+    let result = [...orders];
+
+    // Status Filter
+    if (filterStatus !== 'All') {
+      result = result.filter(o => o.status === filterStatus);
+    }
+
+    // Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(o => 
+        o.customerName.toLowerCase().includes(q) || 
+        o.phone.includes(q) || 
+        o.id.toLowerCase().includes(q)
+      );
+    }
+
+    // Date Filter
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (dateFilterType === 'Today') {
+      result = result.filter(o => {
+        const d = new Date(o.date);
+        return d >= today;
+      });
+    } else if (dateFilterType === 'Yesterday') {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      result = result.filter(o => {
+        const d = new Date(o.date);
+        return d >= yesterday && d < today;
+      });
+    } else if (dateFilterType === 'Week') {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      result = result.filter(o => new Date(o.date) >= weekAgo);
+    } else if (dateFilterType === 'Month') {
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      result = result.filter(o => new Date(o.date) >= monthAgo);
+    } else if (dateFilterType === 'Custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(o => {
+        const d = new Date(o.date);
+        return d >= start && d <= end;
+      });
+    }
+
+    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [orders, filterStatus, searchQuery, dateFilterType, customStartDate, customEndDate]);
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
@@ -87,21 +166,87 @@ const Orders: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status as any)}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-              filterStatus === status 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40' 
-                : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-          >
-            {status === 'All' ? (language === 'bn' ? 'সব' : 'All') : t.status[status as Order['status']]}
-          </button>
-        ))}
+      {/* Filters Section */}
+      <div className="space-y-4">
+        {/* Search Bar */}
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+            <Search size={18} />
+          </div>
+          <input
+            type="text"
+            placeholder={language === 'bn' ? 'অর্ডার আইডি, নাম বা ফোন দিয়ে খুঁজুন...' : 'Search by ID, name or phone...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+          />
+        </div>
+
+        {/* Date Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          {[
+            { id: 'All', label: t.filters.all },
+            { id: 'Today', label: t.filters.today },
+            { id: 'Yesterday', label: t.filters.yesterday },
+            { id: 'Week', label: t.filters.thisWeek },
+            { id: 'Month', label: t.filters.thisMonth },
+            { id: 'Custom', label: t.filters.custom }
+          ].map((filter) => (
+            <button
+              key={filter.id}
+              onClick={() => setDateFilterType(filter.id as any)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all flex items-center gap-2 ${
+                dateFilterType === filter.id 
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-lg' 
+                  : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Calendar size={12} />
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Date Range Inputs */}
+        {dateFilterType === 'Custom' && (
+          <div className="grid grid-cols-2 gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t.filters.start}</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{t.filters.end}</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Status Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          {['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status as any)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterStatus === status 
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40' 
+                  : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {status === 'All' ? (language === 'bn' ? 'সব স্ট্যাটাস' : 'All Status') : t.status[status as Order['status']]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-4">

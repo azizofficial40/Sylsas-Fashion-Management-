@@ -42,7 +42,7 @@ const SALES_T = {
 };
 
 const SalesHistory: React.FC = () => {
-  const { sales, deleteSale, language } = useStore();
+  const { sales = [], deleteSale, language } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filtered = sales.filter(s => 
@@ -98,7 +98,7 @@ const SalesHistory: React.FC = () => {
 };
 
 const Sales: React.FC = () => {
-  const { products, customers, addSale, addCustomer, language } = useStore();
+  const { products = [], customers = [], addSale, addCustomer, language } = useStore();
   const t = SALES_T[language];
   
   const [view, setView] = useState<'form' | 'history'>('form');

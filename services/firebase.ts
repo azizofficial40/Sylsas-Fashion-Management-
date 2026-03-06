@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBZAYR-e00YXxyftVePJzYLWZG8315ZkDc",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCr6bs9VV7Wgluy9_7PNKBtVXlpd_7L5_A",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "sylsas-fashion-b8975.firebaseapp.com",
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://sylsas-fashion-b8975-default-rtdb.firebaseio.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "sylsas-fashion-b8975",

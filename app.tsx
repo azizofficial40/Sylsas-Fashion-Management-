@@ -9,6 +9,7 @@ import Stock from './components/stock.tsx';
 import Expenses from './components/expenses.tsx';
 import Customers from './components/customers.tsx';
 import Reports from './components/reports.tsx';
+import SalesAnalytics from './components/SalesAnalytics.tsx';
 import AIAssistant from './components/ai-assistant.tsx';
 import Settings from './components/settings.tsx';
 import Shop from './components/shop.tsx';
@@ -21,6 +22,7 @@ import {
   Contact2, 
   PieChart, 
   Sparkles,
+  TrendingUp,
   AlertCircle,
   LogIn,
   LogOut,
@@ -40,6 +42,7 @@ const TRANSLATIONS = {
     expense: 'Bills',
     customers: 'Clients',
     report: 'Stats',
+    analytics: 'Analytics',
     ai: 'Sylsas AI',
     loginTitle: 'Sylsas Fashion',
     loginSub: 'Secure Terminal Access',
@@ -58,6 +61,7 @@ const TRANSLATIONS = {
     expense: 'খরচ',
     customers: 'কাস্টমার',
     report: 'রিপোর্ট',
+    analytics: 'অ্যানালিটিক্স',
     ai: 'সিলেস এআই',
     loginTitle: 'সিলেস ফ্যাশন',
     loginSub: 'সিকিউর এক্সেস',
@@ -122,7 +126,7 @@ const LoginScreen: React.FC = () => {
 };
 
 const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) => void }> = ({ activeTab, setActiveTab }) => {
-  const { language, orders } = useStore();
+  const { language, orders = [] } = useStore();
   const t = TRANSLATIONS[language];
   const pendingCount = orders.filter(o => o.status === 'Pending').length;
   
@@ -134,6 +138,7 @@ const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) =>
     { id: 'customers', label: t.customers, icon: Users },
     { id: 'expense', label: t.expense, icon: Wallet },
     { id: 'report', label: t.report, icon: PieChart },
+    { id: 'analytics', label: t.analytics, icon: TrendingUp },
   ];
 
   return (
@@ -262,13 +267,14 @@ const AdminLayout: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard onNavigate={setActiveTab} />;
       case 'orders': return <Orders />;
       case 'sales': return <Sales />;
       case 'stock': return <Stock />;
       case 'expense': return <Expenses />;
       case 'customers': return <Customers />;
       case 'report': return <Reports />;
+      case 'analytics': return <SalesAnalytics />;
       case 'ai': return <AIAssistant />;
       case 'settings': return <Settings />;
       default: return <Dashboard />;
@@ -357,16 +363,20 @@ const AdminLayout: React.FC = () => {
 
 import Auth from './components/auth.tsx';
 import Profile from './components/profile.tsx';
+import AboutUs from './components/AboutUs.tsx';
+import FloatingWhatsApp from './components/FloatingWhatsApp.tsx';
 
 const App: React.FC = () => {
   return (
     <StoreProvider>
       <BrowserRouter>
+        <FloatingWhatsApp />
         <Routes>
           <Route path="/" element={<Shop />} />
           <Route path="/admin" element={<AdminLayout />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/about" element={<AboutUs />} />
         </Routes>
       </BrowserRouter>
     </StoreProvider>

@@ -5,7 +5,7 @@ import { Expense } from '../types';
 import { Plus, Receipt, Calendar, Trash2, X, PlusCircle } from 'lucide-react';
 
 const Expenses: React.FC = () => {
-  const { expenses, addExpense, updateExpense, deleteExpense } = useStore();
+  const { expenses = [], addExpense, updateExpense, deleteExpense } = useStore();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newExpense, setNewExpense] = useState<Partial<Expense>>({

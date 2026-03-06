@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
-import { ShoppingCart, Plus, Minus, X, ArrowRight, CheckCircle2, Search, Filter, ShoppingBag, CreditCard, Banknote, Copy, MessageCircle, Tag, MapPin, User, Star, Image as ImageIcon, Lock } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, X, ArrowRight, ArrowLeft, CheckCircle2, Search, Filter, ShoppingBag, CreditCard, Banknote, Copy, MessageCircle, Tag, MapPin, User, Star, Image as ImageIcon, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Product, StockVariant, Order } from '../types';
 
 import Toast from './Toast.tsx';
+import Footer from './Footer.tsx';
+import Navbar from './Navbar.tsx';
 
 const Shop: React.FC = () => {
-  const { products, cart, addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, notification, setNotification } = useStore();
+  const { products = [], cart = [], addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, notification, setNotification } = useStore();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
@@ -54,8 +56,10 @@ const Shop: React.FC = () => {
   
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
   const filteredProducts = products.filter(p => 
+    p.isVisible !== false &&
+    p.status !== 'Draft' &&
     (selectedCategory === 'All' || p.category === selectedCategory) &&
-    (p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category.toLowerCase().includes(searchQuery.toLowerCase()))
+    ((p.title || p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleApplyCoupon = () => {
@@ -65,8 +69,9 @@ const Shop: React.FC = () => {
         ? (cartTotal * coupon.value) / 100 
         : coupon.value;
       setAppliedCoupon({ code: coupon.code, discount });
+      setNotification({ message: `Coupon "${coupon.code}" applied successfully!`, type: 'success' });
     } else {
-      alert('Invalid Coupon or Minimum Order not met');
+      setNotification({ message: 'Invalid Coupon or Minimum Order not met', type: 'error' });
       setAppliedCoupon(null);
     }
   };
@@ -122,73 +127,13 @@ const Shop: React.FC = () => {
           onClose={() => setNotification(null)} 
         />
       )}
-      {/* WhatsApp Button */}
-      <a 
-        href={`https://wa.me/88${admin.whatsapp || '01618539338'}`} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform animate-bounce"
-      >
-        <MessageCircle size={28} fill="white" />
-      </a>
-
       {/* Navbar */}
-      <nav className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <div className="relative">
-                <div className="absolute inset-0 bg-indigo-600 blur-lg opacity-20 group-hover:opacity-40 transition-opacity rounded-full"></div>
-                {admin.image ? (
-                  <img src={admin.image} className="w-10 h-10 rounded-xl object-cover relative z-10 shadow-sm border border-white/10" alt="Logo" />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center relative z-10 shadow-sm border border-white/10 text-white font-bold">
-                    {admin.name.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <span className="font-black text-xl tracking-tight group-hover:text-indigo-600 transition-colors">{admin.name}</span>
-            </div>
-            
-            <div className="hidden md:flex items-center gap-6 bg-slate-100 dark:bg-slate-800 px-6 py-2.5 rounded-full border border-slate-200 dark:border-slate-700">
-              <Search size={18} className="text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search products..." 
-                className="bg-transparent border-none outline-none text-sm font-bold w-64 placeholder:text-slate-400"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Link to="/admin" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors" title="Admin Panel">
-                <Lock size={18} />
-                <span className="hidden sm:inline">Admin</span>
-              </Link>
-              
-              <button 
-                onClick={() => navigate(user ? '/profile' : '/login')}
-                className="w-10 h-10 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-700 hover:border-indigo-100 active:scale-90 transition-all"
-              >
-                <User size={20} />
-              </button>
-
-              <button 
-                onClick={() => setIsCartOpen(true)}
-                className="relative p-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-lg shadow-slate-200 dark:shadow-slate-900/40 active:scale-95 transition-all hover:rotate-3"
-              >
-                <ShoppingCart size={20} />
-                {cart.length > 0 && (
-                  <span className="absolute -top-2 -right-2 w-6 h-6 bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900 animate-in zoom-in">
-                    {cart.reduce((acc, i) => acc + i.quantity, 0)}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        onCartClick={() => setIsCartOpen(true)}
+        showSearch={true}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
 
       {/* Hero */}
       <div className="relative bg-slate-900 text-white py-32 overflow-hidden">
@@ -234,45 +179,82 @@ const Shop: React.FC = () => {
 
       {/* Product Grid */}
       <div id="products" className="max-w-7xl mx-auto px-4 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredProducts.map(product => (
-            <div 
-              key={product.id} 
-              className="group bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 cursor-pointer"
-              onClick={() => setSelectedProduct(product)}
-            >
-              <div className="aspect-[3/4] overflow-hidden relative bg-slate-100 dark:bg-slate-800">
-                {product.image ? (
-                  <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
-                ) : (
-                  <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <ShoppingBag size={32} className="text-slate-300" />
+        {filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {filteredProducts.map(product => (
+              <div 
+                key={product.id} 
+                className="group bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 cursor-pointer"
+                onClick={() => setSelectedProduct(product)}
+              >
+                <div className="aspect-[3/4] overflow-hidden relative bg-slate-100 dark:bg-slate-800">
+                  {product.image ? (
+                    <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
+                  ) : (
+                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <ShoppingBag size={32} className="text-slate-300" />
+                    </div>
+                  )}
+                  <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm">
+                      {product.category}
+                    </div>
+                    {product.isNewArrival && (
+                      <div className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                        New Arrival
+                      </div>
+                    )}
+                    {product.isTrending && (
+                      <div className="bg-indigo-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20">
+                        Trending
+                      </div>
+                    )}
+                    {product.isBestSeller && (
+                      <div className="bg-amber-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                        Best Seller
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
-                  {product.category}
+                  {product.variants.reduce((a,b) => a+b.quantity, 0) === 0 && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                      <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2">Out of Stock</span>
+                    </div>
+                  )}
                 </div>
-                {product.variants.reduce((a,b) => a+b.quantity, 0) === 0 && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                    <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2">Out of Stock</span>
+                <div className="p-6 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-black text-lg leading-tight line-clamp-2 group-hover:text-indigo-600 transition-colors">{product.title || product.name}</h3>
+                    <span className="text-xl font-black text-slate-900 dark:text-white">৳{product.salePrice}</span>
                   </div>
-                )}
-              </div>
-              <div className="p-6 space-y-3">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-black text-lg leading-tight line-clamp-2 group-hover:text-indigo-600 transition-colors">{product.name}</h3>
-                  <span className="text-xl font-black text-slate-900 dark:text-white">৳{product.salePrice}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  <span>{product.variants.length} Variants</span>
-                  <span>•</span>
-                  <span>{product.variants.reduce((a,b) => a+b.quantity, 0)} In Stock</span>
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <span>{product.variants.length} Variants</span>
+                    <span>•</span>
+                    <span>{product.variants.reduce((a,b) => a+b.quantity, 0)} In Stock</span>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-40 space-y-6">
+            <div className="w-24 h-24 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto text-slate-300">
+              <ShoppingBag size={48} />
             </div>
-          ))}
-        </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">No Products Found</h3>
+              <p className="text-slate-500 font-medium mt-2">We couldn't find any products matching your selection.</p>
+            </div>
+            <button 
+              onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+              className="px-8 py-3 bg-indigo-600 text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
       </div>
+
+      <Footer />
 
       {/* Product Details Modal */}
       {selectedProduct && (
@@ -318,16 +300,30 @@ const Shop: React.FC = () => {
               <div className="space-y-6">
                 <div>
                   <div className="flex justify-between items-start">
-                    <div className="text-xs font-black uppercase tracking-widest text-indigo-600 mb-2">{selectedProduct.category}</div>
-                    {selectedProduct.rating && (
-                      <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg text-amber-500 font-black text-xs">
-                        <Star size={12} fill="currentColor" />
-                        {selectedProduct.rating}
-                      </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs font-black uppercase tracking-widest text-indigo-600">{selectedProduct.category}</div>
+                      {selectedProduct.brandName && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brand: {selectedProduct.brandName}</div>}
+                    </div>
+                    <div className="flex flex-col gap-2 items-end">
+                      {selectedProduct.rating && (
+                        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg text-amber-500 font-black text-xs">
+                          <Star size={12} fill="currentColor" />
+                          {selectedProduct.rating}
+                        </div>
+                      )}
+                      <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest">SKU: {selectedProduct.sku}</div>
+                    </div>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-none mb-4 mt-2">{selectedProduct.title || selectedProduct.name}</h2>
+                  <div className="flex items-baseline gap-3">
+                    <p className="text-3xl font-black text-slate-900 dark:text-white">৳{selectedProduct.salePrice}</p>
+                    {selectedProduct.regularPrice > selectedProduct.salePrice && (
+                      <>
+                        <p className="text-lg text-slate-300 line-through font-bold">৳{selectedProduct.regularPrice}</p>
+                        <p className="text-sm text-rose-500 font-black">-{selectedProduct.discountPercentage}% OFF</p>
+                      </>
                     )}
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-none mb-4">{selectedProduct.name}</h2>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">৳{selectedProduct.salePrice}</p>
                 </div>
                 
                 <div className="space-y-4">
@@ -342,27 +338,92 @@ const Shop: React.FC = () => {
                           setSelectedProduct(null);
                           setIsCartOpen(true);
                         }}
-                        className={`px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                        className={`px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all flex flex-col items-start gap-1 ${
                           v.quantity === 0 
                             ? 'border-slate-100 dark:border-slate-800 text-slate-300 cursor-not-allowed' 
                             : 'border-slate-200 dark:border-slate-700 hover:border-indigo-600 hover:text-indigo-600 active:scale-95'
                         }`}
                       >
-                        <span>{v.size}</span>
-                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                        <span>{v.color}</span>
-                        {v.quantity < 5 && v.quantity > 0 && <span className="text-[10px] text-rose-500 font-black ml-1">Low Stock</span>}
+                        <div className="flex items-center gap-2">
+                          <span>{v.size}</span>
+                          <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                          <span>{v.color}</span>
+                        </div>
+                        {v.material && <span className="text-[10px] opacity-60 font-medium">{v.material}</span>}
+                        {v.quantity === 1 && <span className="text-[10px] text-rose-500 font-black">Low Stock</span>}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-2">Description</h3>
-                  <p className="text-slate-500 leading-relaxed">
-                    Premium quality {selectedProduct.category.toLowerCase()} designed for comfort and style. Made with high-grade materials to ensure durability and a perfect fit.
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-2">Product Description</h3>
+                  <p className="text-slate-500 leading-relaxed text-sm whitespace-pre-wrap">
+                    {selectedProduct.description || selectedProduct.shortDescription || `Premium quality ${selectedProduct.category.toLowerCase()} designed for comfort and style.`}
                   </p>
+                  
+                  {(selectedProduct.weight || selectedProduct.brandName) && (
+                    <div className="mt-6 grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                      {selectedProduct.brandName && (
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Brand</p>
+                          <p className="text-xs font-bold">{selectedProduct.brandName}</p>
+                        </div>
+                      )}
+                      {selectedProduct.weight && (
+                        <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weight</p>
+                          <p className="text-xs font-bold">{selectedProduct.weight} kg</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedProduct.videoUrl && (
+                    <div className="mt-4">
+                      <a 
+                        href={selectedProduct.videoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-colors"
+                      >
+                        <CreditCard size={14} />
+                        Watch Product Video
+                      </a>
+                    </div>
+                  )}
+                  {selectedProduct.features && selectedProduct.features.length > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {selectedProduct.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                          <CheckCircle2 size={14} className="text-emerald-500" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
+
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Delivery Charge</h4>
+                    <p className="text-xs font-bold">৳{selectedProduct.deliveryCharge}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estimated Delivery</h4>
+                    <p className="text-xs font-bold">{selectedProduct.estimatedDelivery}</p>
+                  </div>
+                </div>
+
+                {selectedProduct.tags && selectedProduct.tags.length > 0 && (
+                  <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProduct.tags.map(tag => (
+                        <span key={tag} className="px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest">#{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Reviews Section */}
                 <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
@@ -462,10 +523,15 @@ const Shop: React.FC = () => {
               ) : checkoutStep === 'details' ? (
                 <div className="space-y-6 animate-in slide-in-from-right">
                   <div className="space-y-4">
-                    <h3 className="font-black text-lg flex items-center gap-2">
-                      <span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
-                      Delivery Details
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-black text-lg flex items-center gap-2">
+                        <span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
+                        Delivery Details
+                      </h3>
+                      <button onClick={() => setCheckoutStep('cart')} className="text-xs font-bold text-slate-400 hover:text-indigo-600 flex items-center gap-1">
+                        <ArrowLeft size={12} /> Back to Cart
+                      </button>
+                    </div>
                     <input 
                       type="text" 
                       placeholder="Full Name" 
@@ -517,10 +583,15 @@ const Shop: React.FC = () => {
               ) : checkoutStep === 'payment' ? (
                 <div className="space-y-6 animate-in slide-in-from-right">
                   <div className="space-y-4">
-                    <h3 className="font-black text-lg flex items-center gap-2">
-                      <span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
-                      Payment Method
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-black text-lg flex items-center gap-2">
+                        <span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
+                        Payment Method
+                      </h3>
+                      <button onClick={() => setCheckoutStep('details')} className="text-xs font-bold text-slate-400 hover:text-indigo-600 flex items-center gap-1">
+                        <ArrowLeft size={12} /> Back to Details
+                      </button>
+                    </div>
                     
                     <div className="grid grid-cols-2 gap-3">
                       <button 
@@ -640,9 +711,9 @@ const Shop: React.FC = () => {
                   <button 
                     onClick={handlePlaceOrder} 
                     disabled={paymentMethod !== 'COD' && !transactionId}
-                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Confirm Order
+                    Confirm Order <CheckCircle2 size={20} />
                   </button>
                   <button onClick={() => setCheckoutStep('details')} className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">
                     Back to Details
