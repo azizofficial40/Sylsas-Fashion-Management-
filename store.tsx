@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Customer, Sale, Expense, BusinessState, Language, Theme, Order, CartItem, StockVariant, Coupon, UserProfile, Review } from './types';
+import { Product, Customer, Sale, Expense, BusinessState, Language, Theme, Order, CartItem, StockVariant, Coupon, UserProfile, Review, Banner, Collection, FlashSale } from './types';
 import { db } from './services/firebase';
 import { 
   collection, 
@@ -21,6 +21,9 @@ interface StoreContextType extends BusinessState {
   cart: CartItem[];
   coupons: Coupon[];
   users: UserProfile[];
+  banners: Banner[];
+  collections: Collection[];
+  flashSales: FlashSale[];
   user: UserProfile | null;
   addToCart: (item: CartItem) => void;
   removeFromCart: (productId: string, variant: StockVariant) => void;
@@ -52,6 +55,7 @@ interface StoreContextType extends BusinessState {
   toggleWishlist: (productId: string) => Promise<void>;
   applyCoupon: (code: string, orderTotal: number) => Coupon | null;
   addReview: (productId: string, review: Review) => Promise<void>;
+  handleWhatsAppOrder: (items: CartItem[], details?: any) => void;
   error: { message: string; code?: string } | null;
 }
 
@@ -74,6 +78,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [cart, setCart] = useState<CartItem[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [flashSales, setFlashSales] = useState<FlashSale[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [user, setUser] = useState<UserProfile | null>(() => loadSettings('user', null));
   
@@ -231,6 +238,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       handleFirebaseError
     );
 
+    const unsubBanners = onSnapshot(collection(db, 'banners'), 
+      (snapshot) => {
+        setBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Banner)));
+      },
+      handleFirebaseError
+    );
+
+    const unsubCollections = onSnapshot(collection(db, 'collections'), 
+      (snapshot) => {
+        setCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Collection)));
+      },
+      handleFirebaseError
+    );
+
+    const unsubFlashSales = onSnapshot(collection(db, 'flashSales'), 
+      (snapshot) => {
+        setFlashSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FlashSale)));
+      },
+      handleFirebaseError
+    );
+
     const unsubAdmin = onSnapshot(doc(db, 'settings', 'shop'), 
       (snapshot) => {
         if (snapshot.exists()) {
@@ -267,6 +295,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unsubExpenses();
       unsubCoupons();
       unsubUsersList();
+      unsubBanners();
+      unsubCollections();
+      unsubFlashSales();
       unsubAdmin();
       unsubUser();
     };
@@ -645,6 +676,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showNotification(language === 'bn' ? 'রিভিউ যোগ করা হয়েছে' : 'Review added successfully', 'success');
   });
 
+  const handleWhatsAppOrder = (items: CartItem[], details?: any) => {
+    const adminWhatsApp = admin.whatsapp || '8801618539338';
+    const cleanNumber = adminWhatsApp.replace(/\D/g, '');
+    const waNumber = cleanNumber.startsWith('88') ? cleanNumber : `88${cleanNumber}`;
+
+    let message = "Hello, I want to place an order.\n\n";
+    
+    items.forEach((item, index) => {
+      message += `Product ${index + 1}: ${item.product.title || item.product.name}\n`;
+      message += `Price: ৳${item.product.salePrice}\n`;
+      message += `Quantity: ${item.quantity}\n`;
+      message += `Size/Color: ${item.variant.size} / ${item.variant.color}\n\n`;
+    });
+
+    if (details && details.name) {
+      message += `Customer Name: ${details.name}\n`;
+      message += `Phone: ${details.phone}\n`;
+      message += `Address: ${details.address}, ${details.city}\n`;
+      if (details.orderNotes) message += `Notes: ${details.orderNotes}\n`;
+    }
+
+    const total = items.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
+    message += `\nTotal Amount: ৳${total}`;
+
+    const link = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+    window.open(link, '_blank');
+  };
+
   const updateAdmin = (adminData: BusinessState['admin']) => wrapOp(async () => {
     await setDoc(doc(db, 'settings', 'shop'), sanitize(adminData));
     showNotification(language === 'bn' ? 'সেটিংস আপডেট হয়েছে' : 'Settings updated successfully', 'success');
@@ -657,12 +716,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       products, customers, sales, expenses, admin, language, theme, isLoggedIn, apiKey,
-      orders, cart, coupons, users, user, addToCart, removeFromCart, clearCart, placeOrder, deleteOrder, updateOrderStatus,
+      orders, cart, coupons, users, banners, collections, flashSales, user, addToCart, removeFromCart, clearCart, placeOrder, deleteOrder, updateOrderStatus,
       addProduct, updateProduct, deleteProduct, addSale, deleteSale, 
       addExpense, updateExpense, deleteExpense, 
       addCustomer, updateCustomer, deleteCustomer, receivePayment,
       updateAdmin, setLanguage, setApiKey, toggleTheme, login, logout, 
-      loginUser, logoutUser, toggleWishlist, applyCoupon, addReview, error,
+      loginUser, logoutUser, toggleWishlist, applyCoupon, addReview, handleWhatsAppOrder, error,
       notification, setNotification
     }}>
       {children}

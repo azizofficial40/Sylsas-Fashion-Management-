@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { StoreProvider, useStore } from './store';
 import { TabType, Language } from './types';
 import Dashboard from './components/dashboard.tsx';
+import Home from './components/Home.tsx';
 import Sales from './components/sales.tsx';
 import Stock from './components/stock.tsx';
 import Expenses from './components/expenses.tsx';
@@ -12,6 +13,9 @@ import Reports from './components/reports.tsx';
 import SalesAnalytics from './components/SalesAnalytics.tsx';
 import AIAssistant from './components/ai-assistant.tsx';
 import Settings from './components/settings.tsx';
+import Banners from './components/banners.tsx';
+import Collections from './components/collections.tsx';
+import FlashSales from './components/flash-sales.tsx';
 import Shop from './components/shop.tsx';
 import Orders from './components/orders.tsx';
 import { 
@@ -30,7 +34,10 @@ import {
   UserCircle,
   Users,
   Moon,
-  Sun
+  Sun,
+  Zap,
+  Image,
+  Layers
 } from 'lucide-react';
 
 const TRANSLATIONS = {
@@ -138,6 +145,9 @@ const Navigation: React.FC<{ activeTab: TabType, setActiveTab: (tab: TabType) =>
     { id: 'customers', label: t.customers, icon: Users },
     { id: 'expense', label: t.expense, icon: Wallet },
     { id: 'report', label: t.report, icon: PieChart },
+    { id: 'banners', label: language === 'bn' ? 'ব্যানার' : 'Banners', icon: LayoutGrid },
+    { id: 'collections', label: language === 'bn' ? 'কালেকশন' : 'Collections', icon: Archive },
+    { id: 'flashSales', label: language === 'bn' ? 'ফ্ল্যাশ সেল' : 'Flash Sales', icon: Zap },
     { id: 'analytics', label: t.analytics, icon: TrendingUp },
   ];
 
@@ -274,6 +284,9 @@ const AdminLayout: React.FC = () => {
       case 'expense': return <Expenses />;
       case 'customers': return <Customers />;
       case 'report': return <Reports />;
+      case 'banners': return <Banners />;
+      case 'collections': return <Collections />;
+      case 'flashSales': return <FlashSales />;
       case 'analytics': return <SalesAnalytics />;
       case 'ai': return <AIAssistant />;
       case 'settings': return <Settings />;
@@ -372,7 +385,8 @@ const App: React.FC = () => {
       <BrowserRouter>
         <FloatingWhatsApp />
         <Routes>
-          <Route path="/" element={<Shop />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/admin" element={<AdminLayout />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/profile" element={<Profile />} />

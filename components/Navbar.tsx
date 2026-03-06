@@ -52,7 +52,10 @@ const Navbar: React.FC<NavbarProps> = ({
           )}
 
           <div className="flex items-center gap-4">
-            <Link to="/about" className="hidden md:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors">
+            <Link to="/shop" className="hidden lg:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors">
+              {language === 'bn' ? 'দোকান' : 'Shop'}
+            </Link>
+            <Link to="/about" className="hidden lg:block text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors">
               {language === 'bn' ? 'আমাদের সম্পর্কে' : 'About Us'}
             </Link>
             <Link to="/admin" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors" title="Admin Panel">

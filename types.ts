@@ -119,10 +119,12 @@ export interface CartItem {
 
 export interface Order {
   id: string;
-  userId?: string | null; // For logged-in users
+  userId?: string | null;
   customerName: string;
   phone: string;
   address: string;
+  city: string;
+  orderNotes?: string;
   deliveryLocation: 'Sylhet' | 'Outside';
   items: CartItem[];
   totalAmount: number;
@@ -134,6 +136,33 @@ export interface Order {
   paymentMethod: 'COD' | 'Bkash' | 'Nagad' | 'Rocket';
   transactionId?: string | null;
   timeline?: { status: string; date: string; note?: string }[];
+}
+
+export interface Banner {
+  id: string;
+  image: string;
+  title: string;
+  subtitle?: string;
+  link: string;
+  isActive: boolean;
+  type: 'hero' | 'promo' | 'category';
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  image: string;
+  description?: string;
+  productIds: string[];
+}
+
+export interface FlashSale {
+  id: string;
+  title: string;
+  endTime: string;
+  discountPercentage: number;
+  productIds: string[];
+  isActive: boolean;
 }
 
 export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons' | 'analytics';

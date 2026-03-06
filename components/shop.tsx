@@ -10,17 +10,21 @@ import Footer from './Footer.tsx';
 import Navbar from './Navbar.tsx';
 
 const Shop: React.FC = () => {
-  const { products = [], cart = [], addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, notification, setNotification } = useStore();
+  const { products = [], cart = [], addToCart, removeFromCart, placeOrder, admin, applyCoupon, user, addReview, handleWhatsAppOrder, notification, setNotification } = useStore();
   const navigate = useNavigate();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
-  const [customerDetails, setCustomerDetails] = useState({ name: '', phone: '', address: '' });
+  const [customerDetails, setCustomerDetails] = useState({ name: '', phone: '', address: '', city: '', orderNotes: '' });
   const [paymentMethod, setPaymentMethod] = useState<Order['paymentMethod']>('COD');
   const [transactionId, setTransactionId] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeImage, setActiveImage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedSize, setSelectedSize] = useState<string>('All');
+  const [selectedColor, setSelectedColor] = useState<string>('All');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high' | 'best-selling'>('newest');
   const [deliveryLocation, setDeliveryLocation] = useState<'Sylhet' | 'Outside'>('Sylhet');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{code: string, discount: number} | null>(null);
@@ -55,12 +59,29 @@ const Shop: React.FC = () => {
   const finalTotal = cartTotal + deliveryCharge - discountAmount;
   
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
-  const filteredProducts = products.filter(p => 
-    p.isVisible !== false &&
-    p.status !== 'Draft' &&
-    (selectedCategory === 'All' || p.category === selectedCategory) &&
-    ((p.title || p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const sizes = ['All', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const colors = ['All', ...Array.from(new Set(products.flatMap(p => p.variants.map(v => v.color))))];
+
+  const filteredProducts = products
+    .filter(p => 
+      p.isVisible !== false &&
+      p.status !== 'Draft' &&
+      (selectedCategory === 'All' || p.category === selectedCategory) &&
+      (selectedSize === 'All' || p.variants.some(v => v.size === selectedSize)) &&
+      (selectedColor === 'All' || p.variants.some(v => v.color === selectedColor)) &&
+      (p.salePrice >= priceRange[0] && p.salePrice <= priceRange[1]) &&
+      ((p.title || p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      if (sortBy === 'price-low') return a.salePrice - b.salePrice;
+      if (sortBy === 'price-high') return b.salePrice - a.salePrice;
+      if (sortBy === 'best-selling') return (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0);
+      return new Date(b.id).getTime() - new Date(a.id).getTime(); // Newest (assuming ID is timestamp-based or similar)
+    });
+
+  const relatedProducts = selectedProduct 
+    ? products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 4)
+    : [];
 
   const handleApplyCoupon = () => {
     const coupon = applyCoupon(couponCode, cartTotal);
@@ -90,7 +111,7 @@ const Shop: React.FC = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!customerDetails.name || !customerDetails.phone || !customerDetails.address) return;
+    if (!customerDetails.name || !customerDetails.phone || !customerDetails.address || !customerDetails.city) return;
     if (paymentMethod !== 'COD' && !transactionId) return;
     
     await placeOrder({
@@ -99,6 +120,8 @@ const Shop: React.FC = () => {
       customerName: customerDetails.name,
       phone: customerDetails.phone,
       address: customerDetails.address,
+      city: customerDetails.city,
+      orderNotes: customerDetails.orderNotes,
       deliveryLocation,
       items: cart,
       totalAmount: finalTotal,
@@ -158,29 +181,96 @@ const Shop: React.FC = () => {
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="sticky top-20 z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-4 mb-10 overflow-x-auto no-scrollbar">
-        <div className="max-w-7xl mx-auto px-4 flex gap-2">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                selectedCategory === cat 
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg' 
-                  : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:text-indigo-500'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Filters & Sorting */}
+      <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-6 items-start">
+        {/* Sidebar Filters */}
+        <div className="w-full md:w-64 space-y-8 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Categories</h3>
+            <div className="flex flex-col gap-2">
+              {categories.map(cat => (
+                <button 
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`text-left text-sm font-bold py-1 transition-colors ${selectedCategory === cat ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Product Grid */}
-      <div id="products" className="max-w-7xl mx-auto px-4 pb-20">
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Price Range</h3>
+            <div className="space-y-4">
+              <input 
+                type="range" 
+                min="0" 
+                max="10000" 
+                step="100"
+                value={priceRange[1]}
+                onChange={e => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+              <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <span>৳0</span>
+                <span>৳{priceRange[1]}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Size</h3>
+            <div className="flex flex-wrap gap-2">
+              {sizes.map(size => (
+                <button 
+                  key={size}
+                  onClick={() => setSelectedSize(size)}
+                  className={`w-10 h-10 rounded-xl text-[10px] font-black border-2 transition-all ${selectedSize === size ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600' : 'border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200'}`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button 
+            onClick={() => {
+              setSelectedCategory('All');
+              setSelectedSize('All');
+              setSelectedColor('All');
+              setPriceRange([0, 10000]);
+              setSortBy('newest');
+              setSearchQuery('');
+            }}
+            className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+          >
+            Reset Filters
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 space-y-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Showing {filteredProducts.length} Products</p>
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sort By:</span>
+              <select 
+                className="bg-transparent text-xs font-black uppercase tracking-widest outline-none cursor-pointer text-indigo-600"
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+              >
+                <option value="newest">Newest</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="best-selling">Best Selling</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map(product => (
               <div 
                 key={product.id} 
@@ -214,6 +304,28 @@ const Shop: React.FC = () => {
                         Best Seller
                       </div>
                     )}
+                  </div>
+                  <div className="absolute inset-x-4 bottom-4 translate-y-12 group-hover:translate-y-0 transition-transform duration-500 flex gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProduct(product);
+                      }}
+                      className="flex-1 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-900 dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-white dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Quick View
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const firstVariant = product.variants.find(v => v.quantity > 0) || product.variants[0];
+                        handleWhatsAppOrder([{ product, variant: firstVariant, quantity: 1 }]);
+                      }}
+                      className="w-12 py-3 bg-emerald-500 text-white rounded-xl font-black shadow-xl flex items-center justify-center hover:bg-emerald-600 transition-colors"
+                      title="Order via WhatsApp"
+                    >
+                      <MessageCircle size={16} />
+                    </button>
                   </div>
                   {product.variants.reduce((a,b) => a+b.quantity, 0) === 0 && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
@@ -253,8 +365,9 @@ const Shop: React.FC = () => {
           </div>
         )}
       </div>
+    </div>
 
-      <Footer />
+    <Footer />
 
       {/* Product Details Modal */}
       {selectedProduct && (
@@ -415,6 +528,35 @@ const Shop: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => {
+                        const firstAvailable = selectedProduct.variants.find(v => v.quantity > 0);
+                        if (firstAvailable) {
+                          addToCart({ product: selectedProduct, variant: firstAvailable, quantity: 1 });
+                          setSelectedProduct(null);
+                          setIsCartOpen(true);
+                        }
+                      }}
+                      className="py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart size={16} /> Add to Cart
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const firstAvailable = selectedProduct.variants.find(v => v.quantity > 0);
+                        if (firstAvailable) {
+                          handleWhatsAppOrder([{ product: selectedProduct, variant: firstAvailable, quantity: 1 }]);
+                        }
+                      }}
+                      className="py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <MessageCircle size={16} /> WhatsApp Order
+                    </button>
+                  </div>
+                </div>
+
                 {selectedProduct.tags && selectedProduct.tags.length > 0 && (
                   <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex flex-wrap gap-2">
@@ -486,11 +628,35 @@ const Shop: React.FC = () => {
                       Login to Review
                     </button>
                   )}
-                </div>
+                {/* Related Products */}
+                {relatedProducts.length > 0 && (
+                  <div className="pt-12 border-t border-slate-100 dark:border-slate-800">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6">Related Products</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {relatedProducts.map(rp => (
+                        <div 
+                          key={rp.id} 
+                          className="group cursor-pointer space-y-2"
+                          onClick={() => {
+                            setSelectedProduct(rp);
+                            setActiveImage(rp.image);
+                          }}
+                        >
+                          <div className="aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
+                            <img src={rp.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                          <h4 className="text-[10px] font-black uppercase tracking-tight line-clamp-1">{rp.title || rp.name}</h4>
+                          <p className="text-xs font-black text-indigo-600">৳{rp.salePrice}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Cart Drawer */}
@@ -546,11 +712,38 @@ const Shop: React.FC = () => {
                       value={customerDetails.phone}
                       onChange={e => setCustomerDetails({...customerDetails, phone: e.target.value})}
                     />
+                    <div className="grid grid-cols-2 gap-4">
+                      <select 
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                        value={customerDetails.city}
+                        onChange={e => setCustomerDetails({...customerDetails, city: e.target.value})}
+                      >
+                        <option value="">Select City</option>
+                        <option value="Dhaka">Dhaka</option>
+                        <option value="Sylhet">Sylhet</option>
+                        <option value="Chittagong">Chittagong</option>
+                        <option value="Rajshahi">Rajshahi</option>
+                        <option value="Khulna">Khulna</option>
+                        <option value="Barisal">Barisal</option>
+                        <option value="Rangpur">Rangpur</option>
+                        <option value="Mymensingh">Mymensingh</option>
+                      </select>
+                      <div className="flex items-center gap-2 px-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-400">
+                        <MapPin size={18} />
+                        <span className="text-xs font-bold">City</span>
+                      </div>
+                    </div>
                     <textarea 
                       placeholder="Full Address" 
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-bold h-32 resize-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-bold h-24 resize-none focus:ring-2 focus:ring-indigo-500 transition-all"
                       value={customerDetails.address}
                       onChange={e => setCustomerDetails({...customerDetails, address: e.target.value})}
+                    />
+                    <textarea 
+                      placeholder="Order Notes (Optional)" 
+                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none font-bold h-24 resize-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      value={customerDetails.orderNotes}
+                      onChange={e => setCustomerDetails({...customerDetails, orderNotes: e.target.value})}
                     />
                     
                     <div className="space-y-2">
@@ -714,6 +907,12 @@ const Shop: React.FC = () => {
                     className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 dark:shadow-indigo-900/40 hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     Confirm Order <CheckCircle2 size={20} />
+                  </button>
+                  <button 
+                    onClick={() => handleWhatsAppOrder(cart, customerDetails)}
+                    className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-emerald-200 dark:shadow-emerald-900/40 hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    Order via WhatsApp <MessageCircle size={20} />
                   </button>
                   <button onClick={() => setCheckoutStep('details')} className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">
                     Back to Details
