@@ -1,104 +1,135 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Sylsas Fashion | Premium Management</title>
-    <meta name="description" content="Professional business management terminal for Sylsas Fashion. Manage inventory, sales, and customers with AI-powered insights.">
-    <link rel="icon" type="image/png" href="https://i.ibb.co/mFGPKszk/logo.png">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Sylsas Fashion">
+    <meta
+      name="description"
+      content="Professional business management terminal for Sylsas Fashion. Manage inventory, sales, and customers with AI-powered insights."
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://i.ibb.co/mFGPKszk/logo.png"
+    />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Sylsas Fashion" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
-        darkMode: 'class'
+        darkMode: "class",
+      };
+    </script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --app-height: 100%;
+      }
+      body {
+        font-family: "Plus Jakarta Sans", "Hind Siliguri", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        overflow-x: hidden;
+        background-color: #f3f4f6;
+      }
+      .safe-bottom {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+      }
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      @keyframes float {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        33% {
+          transform: translate(20px, -40px) scale(1.1);
+        }
+        66% {
+          transform: translate(-10px, 15px) scale(0.95);
+        }
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+      }
+      .bg-blob {
+        position: fixed;
+        width: 450px;
+        height: 450px;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: -1;
+        opacity: 0.35;
+        animation: float 25s infinite ease-in-out;
+      }
+      .active-tab-glow {
+        box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
+      }
+      .dark body {
+        background-color: #020617;
+      }
+      .dark .bg-blob {
+        opacity: 0.15;
+      }
+      .dark .glass-panel {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@19.0.0",
+          "react/": "https://esm.sh/react@19.0.0/",
+          "react-dom": "https://esm.sh/react-dom@19.0.0",
+          "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+          "@google/genai": "https://esm.sh/@google/genai@1.38.0",
+          "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
+          "lucide-react": "https://esm.sh/lucide-react@0.400.0?external=react,react-dom",
+          "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+          "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+          "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+          "firebase/": "https://esm.sh/firebase@^12.8.0/"
+        }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --app-height: 100%;
-        }
-        body {
-            font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-            background-color: #f3f4f6;
-        }
-        .safe-bottom {
-            padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
-        }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(20px, -40px) scale(1.1); }
-            66% { transform: translate(-10px, 15px) scale(0.95); }
-            100% { transform: translate(0, 0) scale(1); }
-        }
-        .bg-blob {
-            position: fixed;
-            width: 450px;
-            height: 450px;
-            border-radius: 50%;
-            filter: blur(100px);
-            z-index: -1;
-            opacity: 0.35;
-            animation: float 25s infinite ease-in-out;
-        }
-        .active-tab-glow {
-            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
-        }
-        .dark body {
-            background-color: #020617;
-        }
-        .dark .bg-blob {
-            opacity: 0.15;
-        }
-        .dark .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-    "@google/genai": "https://esm.sh/@google/genai@1.38.0",
-    "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
-    "lucide-react": "https://esm.sh/lucide-react@0.400.0?external=react,react-dom",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
-    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
-    "firebase/": "https://esm.sh/firebase@^12.8.0/"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
-</head>
-<body class="text-slate-900 dark:text-slate-100 transition-colors duration-500">
+    <link rel="stylesheet" href="/index.css" />
+  </head>
+  <body
+    class="text-slate-900 dark:text-slate-100 transition-colors duration-500"
+  >
     <div class="bg-blob bg-indigo-300 -top-20 -left-20"></div>
-    <div class="bg-blob bg-rose-200 bottom-10 right-10" style="animation-delay: -7s"></div>
-    <div class="bg-blob bg-emerald-200 top-1/2 left-1/3" style="animation-delay: -12s"></div>
+    <div
+      class="bg-blob bg-rose-200 bottom-10 right-10"
+      style="animation-delay: -7s"
+    ></div>
+    <div
+      class="bg-blob bg-emerald-200 top-1/2 left-1/3"
+      style="animation-delay: -12s"
+    ></div>
     <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
-</body>
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>

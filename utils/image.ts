@@ -6,10 +6,10 @@ export const compressImage = (file: File): Promise<string> => {
       const img = new Image();
       img.src = event.target?.result as string;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         const MAX_WIDTH = 800;
         const scaleSize = MAX_WIDTH / img.width;
-        
+
         // If image is smaller than MAX_WIDTH, don't upscale
         if (img.width <= MAX_WIDTH) {
           canvas.width = img.width;
@@ -19,11 +19,11 @@ export const compressImage = (file: File): Promise<string> => {
           canvas.height = img.height * scaleSize;
         }
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
+
         // Compress to JPEG with 0.7 quality
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
         resolve(dataUrl);
       };
       img.onerror = (error) => reject(error);

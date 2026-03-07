@@ -1,7 +1,6 @@
-
-export type Size = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
-export type Language = 'en' | 'bn';
-export type Theme = 'light' | 'dark';
+export type Size = "XS" | "S" | "M" | "L" | "XL" | "XXL";
+export type Language = "en" | "bn";
+export type Theme = "light" | "dark";
 
 export interface StockVariant {
   size: Size;
@@ -52,7 +51,7 @@ export interface Product {
   isFeatured: boolean;
   isTrending: boolean;
   isVisible: boolean;
-  status: 'Published' | 'Draft';
+  status: "Published" | "Draft";
 }
 
 export interface Customer {
@@ -77,13 +76,13 @@ export interface UserProfile {
 
 export interface Coupon {
   code: string;
-  type: 'percentage' | 'fixed';
+  type: "percentage" | "fixed";
   value: number;
   minOrder: number;
   isActive: boolean;
 }
 
-export type PaymentStatus = 'Full Paid' | 'Partial Paid' | 'Due';
+export type PaymentStatus = "Full Paid" | "Partial Paid" | "Due";
 
 export interface Sale {
   id: string;
@@ -125,15 +124,21 @@ export interface Order {
   address: string;
   city: string;
   orderNotes?: string;
-  deliveryLocation: 'Sylhet' | 'Outside';
+  deliveryLocation: "Sylhet" | "Outside";
   items: CartItem[];
   totalAmount: number;
   deliveryCharge: number;
   discount: number;
   couponCode?: string | null;
-  status: 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status:
+    | "Pending"
+    | "Confirmed"
+    | "Processing"
+    | "Shipped"
+    | "Delivered"
+    | "Cancelled";
   date: string;
-  paymentMethod: 'COD' | 'Bkash' | 'Nagad' | 'Rocket';
+  paymentMethod: "COD" | "Bkash" | "Nagad" | "Rocket";
   transactionId?: string | null;
   timeline?: { status: string; date: string; note?: string }[];
 }
@@ -145,7 +150,7 @@ export interface Banner {
   subtitle?: string;
   link: string;
   isActive: boolean;
-  type: 'hero' | 'promo' | 'category';
+  type: "hero" | "promo" | "category";
 }
 
 export interface Collection {
@@ -166,7 +171,19 @@ export interface FlashSale {
   isActive: boolean;
 }
 
-export type TabType = 'dashboard' | 'sales' | 'stock' | 'expense' | 'customers' | 'report' | 'ai' | 'orders' | 'settings' | 'coupons' | 'analytics' | 'websiteManagement';
+export type TabType =
+  | "dashboard"
+  | "sales"
+  | "stock"
+  | "expense"
+  | "customers"
+  | "report"
+  | "ai"
+  | "orders"
+  | "settings"
+  | "coupons"
+  | "analytics"
+  | "websiteManagement";
 
 export interface BusinessState {
   products: Product[];
