@@ -107,7 +107,7 @@ const ANALYTICS_T = {
 };
 
 const SalesAnalytics: React.FC = () => {
-  const { orders = [], language } = useStore();
+  const { orders = [], sales = [], language } = useStore();
   const t = ANALYTICS_T[language];
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,7 +120,46 @@ const SalesAnalytics: React.FC = () => {
     "all" | "day" | "week" | "month" | "custom"
   >("all");
 
-  const now = new Date("2026-03-06T00:14:20-08:00");
+  // Combine Orders and Offline Sales into a unified format for analytics
+  const combinedData = useMemo(() => {
+    // Online orders (all statuses)
+    const onlineData = orders.map((o) => ({
+      id: o.id,
+      customerName: o.customerName,
+      phone: o.phone,
+      date: o.date,
+      totalAmount: o.totalAmount,
+      status: o.status,
+      items: o.items,
+      type: "online",
+    }));
+
+    // Offline sales (only those not linked to online orders to avoid double counting)
+    const offlineData = sales
+      .filter((s) => !s.id.startsWith("sale_") && !s.id.startsWith("ONLINE_"))
+      .map((s) => ({
+        id: s.id,
+        customerName: s.customerName,
+        phone: s.phone || "N/A",
+        date: s.date,
+        totalAmount: s.totalAmount,
+        status: "Delivered" as const, // Offline sales are considered delivered
+        items: [
+          {
+            product: { name: s.productName } as any,
+            variant: { size: s.size, color: s.color } as any,
+            quantity: s.quantity,
+          },
+        ],
+        type: "offline",
+      }));
+
+    return [...onlineData, ...offlineData].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [orders, sales]);
+
+  const now = new Date();
 
   const getStartOfDay = (date: Date) => {
     const d = new Date(date);
@@ -147,30 +186,34 @@ const SalesAnalytics: React.FC = () => {
     const weekStart = getStartOfWeek(now);
     const monthStart = getStartOfMonth(now);
 
-    const calculateTotal = (filtered: Order[]) =>
-      filtered.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+    const calculateTotal = (filtered: any[]) =>
+      filtered
+        .filter((o) => o.status !== "Cancelled")
+        .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
 
     return {
       today: calculateTotal(
-        orders.filter((o) => new Date(o.date) >= todayStart),
+        combinedData.filter((o) => new Date(o.date) >= todayStart),
       ),
       yesterday: calculateTotal(
-        orders.filter((o) => {
+        combinedData.filter((o) => {
           const d = new Date(o.date);
           return d >= yesterdayStart && d < todayStart;
         }),
       ),
-      week: calculateTotal(orders.filter((o) => new Date(o.date) >= weekStart)),
-      month: calculateTotal(
-        orders.filter((o) => new Date(o.date) >= monthStart),
+      week: calculateTotal(
+        combinedData.filter((o) => new Date(o.date) >= weekStart),
       ),
-      lifetime: calculateTotal(orders),
+      month: calculateTotal(
+        combinedData.filter((o) => new Date(o.date) >= monthStart),
+      ),
+      lifetime: calculateTotal(combinedData),
     };
-  }, [orders]);
+  }, [combinedData]);
 
   // Filter Logic
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
+    return combinedData.filter((order) => {
       const orderDate = new Date(order.date);
       const matchesSearch =
         order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -194,16 +237,17 @@ const SalesAnalytics: React.FC = () => {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [orders, searchQuery, statusFilter, filterType, dateRange]);
+  }, [combinedData, searchQuery, statusFilter, filterType, dateRange]);
 
   // Stats Calculations
   const stats = useMemo(() => {
+    const activeOrders = filteredOrders.filter((o) => o.status !== "Cancelled");
     const totalOrders = filteredOrders.length;
-    const revenue = filteredOrders.reduce(
+    const revenue = activeOrders.reduce(
       (acc, o) => acc + (o.totalAmount || 0),
       0,
     );
-    const productsSold = filteredOrders.reduce((acc, o) => {
+    const productsSold = activeOrders.reduce((acc, o) => {
       return (
         acc + o.items.reduce((iAcc, item) => iAcc + (item.quantity || 0), 0)
       );
@@ -222,8 +266,10 @@ const SalesAnalytics: React.FC = () => {
         day: "numeric",
         month: "short",
       });
-      const dayOrders = orders.filter(
-        (o) => new Date(o.date).toDateString() === d.toDateString(),
+      const dayOrders = combinedData.filter(
+        (o) =>
+          new Date(o.date).toDateString() === d.toDateString() &&
+          o.status !== "Cancelled",
       );
       data.push({
         name: dateStr,
@@ -232,7 +278,7 @@ const SalesAnalytics: React.FC = () => {
       });
     }
     return data;
-  }, [orders]);
+  }, [combinedData]);
 
   const exportToCSV = () => {
     const headers = [

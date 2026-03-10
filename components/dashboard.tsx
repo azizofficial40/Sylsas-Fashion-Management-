@@ -75,13 +75,60 @@ const DashboardCard: React.FC<{
 const Dashboard: React.FC<{ onNavigate?: (tab: TabType) => void }> = ({
   onNavigate,
 }) => {
-  const { sales = [], expenses = [], products = [], language } = useStore();
+  const {
+    sales = [],
+    expenses = [],
+    products = [],
+    orders = [],
+    language,
+  } = useStore();
   const t = DASHBOARD_T[language];
 
-  const today = new Date().toLocaleDateString();
-  const todaySales = sales
-    .filter((s) => new Date(s.date).toLocaleDateString() === today)
-    .reduce((acc, s) => acc + s.totalAmount, 0);
+  // Combine Orders and Offline Sales into a unified format for analytics
+  // This matches the logic in SalesAnalytics.tsx to ensure consistency
+  const combinedData = React.useMemo(() => {
+    const onlineData = orders.map((o) => ({
+      id: o.id,
+      customerName: o.customerName,
+      phone: o.phone,
+      date: o.date,
+      totalAmount: o.totalAmount,
+      status: o.status,
+      items: o.items,
+      type: "online",
+    }));
+
+    const offlineData = sales
+      .filter((s) => !s.id.startsWith("sale_") && !s.id.startsWith("ONLINE_"))
+      .map((s) => ({
+        id: s.id,
+        customerName: s.customerName,
+        phone: s.phone || "N/A",
+        date: s.date,
+        totalAmount: s.totalAmount,
+        status: "Delivered" as const,
+        items: [
+          {
+            product: { name: s.productName } as any,
+            variant: { size: s.size, color: s.color } as any,
+            quantity: s.quantity,
+          },
+        ],
+        type: "offline",
+      }));
+
+    return [...onlineData, ...offlineData].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [orders, sales]);
+
+  const today = new Date().toDateString();
+  const todaySales = combinedData
+    .filter(
+      (o) =>
+        new Date(o.date).toDateString() === today && o.status !== "Cancelled",
+    )
+    .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
 
   const totalProfit = sales.reduce((acc, s) => acc + s.profit, 0);
   const totalExpense = expenses.reduce((acc, e) => acc + e.amount, 0);
@@ -201,7 +248,10 @@ const Dashboard: React.FC<{ onNavigate?: (tab: TabType) => void }> = ({
               {t.recent}
             </h3>
           </div>
-          <button className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-widest flex items-center gap-2 group">
+          <button
+            onClick={() => onNavigate?.("analytics")}
+            className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-widest flex items-center gap-2 group"
+          >
             {t.ledger}{" "}
             <ChevronRight
               size={14}
@@ -210,7 +260,7 @@ const Dashboard: React.FC<{ onNavigate?: (tab: TabType) => void }> = ({
           </button>
         </div>
 
-        {sales.length === 0 ? (
+        {combinedData.length === 0 ? (
           <div className="bg-white/40 dark:bg-slate-900/40 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] py-16 text-center">
             <Package
               size={40}
@@ -222,27 +272,27 @@ const Dashboard: React.FC<{ onNavigate?: (tab: TabType) => void }> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {sales.slice(0, 4).map((sale) => (
+            {combinedData.slice(0, 4).map((item) => (
               <div
-                key={sale.id}
+                key={item.id}
                 className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-white dark:border-slate-800 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center gap-5">
                   <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 font-black text-2xl border border-white dark:border-slate-700">
-                    {sale.productName.charAt(0)}
+                    {item.customerName.charAt(0)}
                   </div>
                   <div>
                     <h4 className="font-black text-slate-900 dark:text-white">
-                      {sale.productName}
+                      {item.customerName}
                     </h4>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        {sale.customerName}
+                        {item.phone}
                       </span>
                       <span className="w-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full"></span>
                       <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 tracking-tighter">
                         <Clock size={10} className="inline mr-1" />{" "}
-                        {new Date(sale.date).toLocaleTimeString([], {
+                        {new Date(item.date).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -252,16 +302,18 @@ const Dashboard: React.FC<{ onNavigate?: (tab: TabType) => void }> = ({
                 </div>
                 <div className="text-right">
                   <p className="font-black text-slate-900 dark:text-white">
-                    ৳{sale.totalAmount}
+                    ৳{item.totalAmount}
                   </p>
                   <div
                     className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest mt-2 inline-block ${
-                      sale.paymentStatus === "Full Paid"
+                      item.status === "Delivered"
                         ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600"
-                        : "bg-rose-50 dark:bg-rose-950/30 text-rose-500"
+                        : item.status === "Cancelled"
+                          ? "bg-rose-50 dark:bg-rose-950/30 text-rose-500"
+                          : "bg-amber-50 dark:bg-amber-950/30 text-amber-600"
                     }`}
                   >
-                    {sale.paymentStatus === "Full Paid" ? t.paid : t.due}
+                    {item.status}
                   </div>
                 </div>
               </div>

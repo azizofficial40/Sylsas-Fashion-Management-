@@ -88,6 +88,7 @@ export interface Sale {
   id: string;
   customerId: string;
   customerName: string;
+  phone?: string;
   productId: string;
   productName: string;
   size: Size;

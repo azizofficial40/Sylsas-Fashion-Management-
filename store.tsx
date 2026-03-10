@@ -638,6 +638,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
             id: `sale_${order.id}_${item.product.id}_${Date.now()}`,
             customerId: customerId!,
             customerName: order.customerName,
+            phone: order.phone,
             productId: item.product.id,
             productName: item.product.name,
             size: item.variant.size,

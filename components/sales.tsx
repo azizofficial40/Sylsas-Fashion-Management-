@@ -209,6 +209,7 @@ const Sales: React.FC = () => {
       id: Date.now().toString(),
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
+      phone: selectedCustomer.phone,
       productId: selectedProduct.id,
       productName: selectedProduct.name,
       size: selectedSize as Size,
